@@ -10,7 +10,7 @@
 
 ## 🎯 What is the Starbridge Platform?
 
-**Starbridge Platform** is Admiral E.C. Copilot's Genesis Architecture v2.0.0 - a comprehensive dual-mode Kubernetes fleet designed to transform your infrastructure into an enterprise-grade workflow orchestration system. Built specifically for **Workflow Nexus (n8n)**, **Data Vault (PostgreSQL)**, **Neural Nexus (AI models)**, **Guardian Nexus (security)**, and **secure File Bridge services**.
+**Starbridge Platform** is a comprehensive Kubernetes fleet architecture, designed to transform your infrastructure into an enterprise-grade workflow orchestration system. Built specifically for **Workflow Nexus (n8n)**, **Data Vault (PostgreSQL)**, **Neural Nexus (AI models)**, **Guardian Nexus (security)**, and **secure File Bridge services**.
 
 ### **🚀 Fleet Service Architecture**
 
@@ -27,7 +27,7 @@
 ## 🛠️ Quick Start
 
 ### **Prerequisites**
-- Kubernetes cluster (Rancher Desktop recommended)
+- Kubernetes cluster (Rancher Desktop as example for local development)
 - `kubectl` configured
 - `make` installed
 
