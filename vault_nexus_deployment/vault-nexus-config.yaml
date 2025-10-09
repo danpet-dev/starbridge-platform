@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-nexus-config
+  namespace: security-nexus
+  labels:
+    app: vault-nexus
+    component: config
+data:
+  vault.hcl: |
+    # Vault Nexus Configuration - Starbridge Platform
+    # High-security configuration for enterprise secret management
+    
+    ui = true
+    
+    # Storage backend - File system for simplicity
+    storage "file" {
+      path = "/vault/data"
+    }
+    
+    # Network listener
+    listener "tcp" {
+      address         = "0.0.0.0:8200"
+      cluster_address = "0.0.0.0:8201"
+      tls_disable     = true
+      # Note: In production, enable TLS with proper certificates
+    }
+    
+    # API address
+    api_addr = "http://vault-nexus.security-nexus.svc.cluster.local:8200"
+    cluster_addr = "http://vault-nexus.security-nexus.svc.cluster.local:8201"
+    
+    # Logging
+    log_level = "Info"
+    log_format = "json"
+    
+    # Disable memory lock for containerized environments
+    disable_mlock = true
+    
+    # Plugin directory
+    plugin_directory = "/vault/plugins"
+    
+    # Enable raw endpoint (needed for health checks)
+    raw_storage_endpoint = true
+    
+    # Cluster settings
+    cluster_name = "starbridge-vault-cluster"
+    
+    # Performance settings
+    default_lease_ttl = "168h"
+    max_lease_ttl = "720h"
+    
+    # Cache settings
+    cache_size = "32MB"

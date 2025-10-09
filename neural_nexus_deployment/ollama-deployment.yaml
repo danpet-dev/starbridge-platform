@@ -19,9 +19,25 @@ spec:
         model: MODEL_NAME
         component: ai-model
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
       - name: model-downloader
-        image: ollama/ollama:latest
+        image: ollama/ollama:0.3.10
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+              - ALL
         command:
         - /bin/bash
         - -c
@@ -111,11 +127,20 @@ spec:
             memory: "4Gi"
       containers:
       - name: ollama
-        image: ollama/ollama:latest
+        image: ollama/ollama:0.3.10
         ports:
         - containerPort: 11434
           name: http
           protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+              - ALL
         env:
         - name: OLLAMA_HOST
           valueFrom:

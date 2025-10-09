@@ -1,5 +1,7 @@
-<div align="center">
-  <img src="assets/logo-starbridge-platform.jpeg" alt="Starbridge Platform Logo" width="500"/>
+<div align="center"- **🧠 Neural Nexus** - Ollama-powered AI model deployment with GPU support
+- **🛡️ Guardian Nexus** - Keycloak OIDC security and role-based access control
+- **🔐 Vault Nexus** - HashiCorp Vault for enterprise secret management (optional)
+- **📡 Starbridge Beacon** - Web interface and service monitoring <img src="assets/logo-starbridge-platform.jpeg" alt="Starbridge Platform Logo" width="500"/>
   
   # **Starbridge Platform**
 
@@ -53,6 +55,11 @@ make deploy-n8n
 
 # Deploy AI models
 make new-ollama-pod MODEL=llama3.1
+
+# Optional: Deploy Vault for enhanced security
+make deploy-vault-nexus
+make vault-init
+make vault-setup
 ```
 
 ---
@@ -66,6 +73,7 @@ make new-ollama-pod MODEL=llama3.1
 | **PostgreSQL** | Database services | ✅ Production Ready |
 | **Ollama AI** | LLM model deployment | ✅ Production Ready |
 | **SSH Management** | Security automation | ✅ Production Ready |
+| **Vault Integration** | Enterprise secret management | ✅ Production Ready |
 
 ---
 
@@ -85,7 +93,13 @@ make n8n-list-ssh-keys                    # List SSH credentials
 make port-forward                         # Access n8n UI
 ```
 
-### **🧠 AI Model Operations**
+### **🔐 Vault Secret Management**
+```bash
+make deploy-vault-nexus                   # Deploy Vault Nexus
+make vault-init                           # Initialize Vault
+make vault-setup                          # Configure policies
+make vault-status                         # Check Vault health
+```
 ```bash
 make show-model-catalog                   # Available models
 make new-ollama-pod MODEL=llava          # Deploy vision model
@@ -150,6 +164,7 @@ Your n8n workflows can now securely read/write files through the SFTP bridge!
 - **[Workflow Nexus Deployment](workflow_nexus_deployment/README.md)** - n8n setup and configuration
 - **[Neural Nexus Deployment](neural_nexus_deployment/README.md)** - AI model deployment guide
 - **[Guardian Nexus Security](guardian_nexus_deployment/README.md)** - Authentication and authorization
+- **[Vault Nexus Security](vault_nexus_deployment/README.md)** - Enterprise secret management
 - **[Data Vault Database](data_vault_deployment/README.md)** - PostgreSQL database services
 - **[Starbridge Beacon Web](starbridge_beacon_deployment/README.md)** - Web interface and monitoring
 

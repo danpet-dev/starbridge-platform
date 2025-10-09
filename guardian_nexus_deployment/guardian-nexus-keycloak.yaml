@@ -20,9 +20,25 @@ spec:
         component: keycloak
         platform: starbridge
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
       - name: wait-for-postgres
-        image: postgres:15-alpine
+        image: postgres:16.4-alpine
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 999
+          runAsGroup: 999
+          capabilities:
+            drop:
+              - ALL
         command:
         - sh
         - -c
@@ -40,7 +56,16 @@ spec:
               key: postgres-password
       containers:
       - name: keycloak
-        image: quay.io/keycloak/keycloak:22.0
+        image: quay.io/keycloak/keycloak:25.0.4
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+              - ALL
         args:
         - start
         - --hostname-strict=false

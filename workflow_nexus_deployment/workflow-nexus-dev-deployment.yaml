@@ -21,13 +21,29 @@ spec:
         platform: starbridge
         mode: developer
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: n8n
-        image: n8nio/n8n:latest
+        image: n8nio/n8n:1.63.4
         ports:
         - containerPort: 5678
           name: http
           protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+              - ALL
         env:
         # Basic Configuration
         - name: N8N_HOST

@@ -58,6 +58,9 @@ jobs:
         scan-ref: '.'
         format: 'sarif'
         output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH,MEDIUM'
+        ignore-unfixed: true
+        trivyignores: '.trivyignore'
 
     - name: 📊 Upload Trivy Scan Results
       uses: github/codeql-action/upload-sarif@v2

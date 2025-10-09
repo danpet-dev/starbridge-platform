@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault-agent-injector
+  namespace: security-nexus
+  labels:
+    app: vault-agent-injector
+    component: injector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault-agent-injector
+  template:
+    metadata:
+      labels:
+        app: vault-agent-injector
+        component: injector
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: vault-nexus
+      containers:
+      - name: vault-agent-injector
+        image: hashicorp/vault-k8s:1.4.1
+        env:
+        - name: AGENT_INJECT_LISTEN
+          value: ":8080"
+        - name: AGENT_INJECT_LOG_LEVEL
+          value: "info"
+        - name: AGENT_INJECT_VAULT_ADDR
+          value: "http://vault-nexus.security-nexus.svc.cluster.local:8200"
+        - name: AGENT_INJECT_VAULT_AUTH_PATH
+          value: "auth/kubernetes"
+        - name: AGENT_INJECT_VAULT_IMAGE
+          value: "hashicorp/vault:1.15.2"
+        - name: AGENT_INJECT_TLS_AUTO
+          value: "vault-agent-injector-cfg"
+        - name: AGENT_INJECT_TLS_AUTO_HOSTS
+          value: "vault-agent-injector,vault-agent-injector.security-nexus,vault-agent-injector.security-nexus.svc"
+        ports:
+        - containerPort: 8080
+          name: webhook
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+              - ALL
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 2
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 2
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 2
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 2
+        args:
+        - agent-inject
+        - 2>&1
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionWebhook
+metadata:
+  name: vault-agent-injector-cfg
+  labels:
+    app: vault-agent-injector
+rules:
+- operations: ["CREATE", "UPDATE"]
+  apiGroups: [""]
+  apiVersions: ["v1"]
+  resources: ["pods"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+clientConfig:
+  service:
+    name: vault-agent-injector
+    namespace: security-nexus
+    path: "/mutate"
+  caBundle: ""
+failurePolicy: Ignore
+sideEffects: None

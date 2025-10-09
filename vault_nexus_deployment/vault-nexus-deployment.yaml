@@ -1,0 +1,149 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault-nexus
+  namespace: security-nexus
+  labels:
+    app: vault-nexus
+    component: vault
+    platform: starbridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault-nexus
+      component: vault
+  template:
+    metadata:
+      labels:
+        app: vault-nexus
+        component: vault
+        platform: starbridge
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: vault-nexus
+      containers:
+      - name: vault
+        image: hashicorp/vault:1.15.2
+        ports:
+        - containerPort: 8200
+          name: vault-port
+          protocol: TCP
+        - containerPort: 8201
+          name: vault-cluster
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 100
+          runAsGroup: 1000
+          capabilities:
+            drop:
+              - ALL
+            add:
+              - IPC_LOCK
+        env:
+        - name: VAULT_ADDR
+          value: "http://127.0.0.1:8200"
+        - name: VAULT_API_ADDR
+          value: "http://vault-nexus.security-nexus.svc.cluster.local:8200"
+        - name: VAULT_CLUSTER_ADDR
+          value: "http://vault-nexus.security-nexus.svc.cluster.local:8201"
+        - name: VAULT_LOG_LEVEL
+          value: "info"
+        - name: VAULT_UI
+          value: "true"
+        volumeMounts:
+        - name: vault-config
+          mountPath: /vault/config
+          readOnly: true
+        - name: vault-data
+          mountPath: /vault/data
+        - name: vault-logs
+          mountPath: /vault/logs
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /v1/sys/health?standbyok=true
+            port: 8200
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204
+            port: 8200
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 2
+        command:
+        - "/bin/sh"
+        - "-ec"
+        args:
+        - |
+          cp /vault/config/vault.hcl /tmp/vault.hcl
+          sed -Ei "s/HOST_IP/${HOST_IP?}/g" /tmp/vault.hcl
+          /usr/local/bin/docker-entrypoint.sh vault server -config=/tmp/vault.hcl
+      volumes:
+      - name: vault-config
+        configMap:
+          name: vault-nexus-config
+      - name: vault-data
+        persistentVolumeClaim:
+          claimName: vault-nexus-pvc
+      - name: vault-logs
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-nexus
+  namespace: security-nexus
+  labels:
+    app: vault-nexus
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault-nexus
+  namespace: security-nexus
+  labels:
+    app: vault-nexus
+    component: vault
+spec:
+  type: ClusterIP
+  ports:
+  - name: vault-port
+    port: 8200
+    targetPort: 8200
+    protocol: TCP
+  - name: vault-cluster
+    port: 8201
+    targetPort: 8201
+    protocol: TCP
+  selector:
+    app: vault-nexus
+    component: vault

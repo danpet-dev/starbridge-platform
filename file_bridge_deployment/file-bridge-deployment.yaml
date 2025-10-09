@@ -21,13 +21,25 @@ spec:
         component: pod
     spec:
       securityContext:
+        runAsNonRoot: true
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
       # SSH key setup container
       - name: ssh-setup
-        image: alpine:3.18
+        image: alpine:3.20.3
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+              - ALL
         command: ["/bin/sh"]
         args:
         - -c
@@ -79,9 +91,12 @@ spec:
       
       # SSHFS mount container
       - name: sshfs-mount
-        image: alpine:3.18
+        image: alpine:3.20.3
         securityContext:
           privileged: true
+          capabilities:
+            add:
+              - SYS_ADMIN
         command: ["/bin/sh"]
         args:
         - -c
@@ -132,11 +147,24 @@ spec:
       containers:
       # Main SFTP server container
       - name: sftp-server
-        image: alpine:3.18
+        image: alpine:3.20.3
         ports:
         - containerPort: SFTP_PORT
           name: sftp
           protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+              - ALL
+            add:
+              - CHOWN
+              - SETGID
+              - SETUID
         command: ["/bin/sh"]
         args:
         - -c

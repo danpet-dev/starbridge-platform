@@ -180,10 +180,83 @@ help: ## 📋 Display Starbridge Platform Fleet Command Center
 	@echo "  DEV_NAMESPACE    - Developer namespace (default: $(DEV_NAMESPACE))"
 	@echo "  PROD_NAMESPACE   - Production namespace (default: $(PROD_NAMESPACE))"
 	@echo "  SECURITY_NS      - Security namespace (default: $(SECURITY_NAMESPACE))"
+	@echo "  VAULT            - Enable Vault integration (default: disabled)"
 	@echo ""
 
 # =============================================================================
-# � DUAL-MODE DEPLOYMENT SYSTEM - GENESIS ARCHITECTURE
+# 🔐 VAULT NEXUS - ADVANCED SECRET MANAGEMENT
+# =============================================================================
+
+.PHONY: deploy-vault-nexus
+deploy-vault-nexus: ## 🔐 DEPLOY Vault Nexus secret management
+	@echo "$(SHIELD) Deploying Vault Nexus - Advanced Secret Management"
+	@echo "═══════════════════════════════════════════════════════════════"
+	@$(MAKE) _create-security-namespace
+	@echo "$(SHIELD) Deploying Vault configuration..."
+	kubectl apply -f vault_nexus_deployment/vault-nexus-config.yaml
+	@echo "$(SHIELD) Setting up RBAC..."
+	kubectl apply -f vault_nexus_deployment/vault-nexus-rbac.yaml
+	@echo "$(SHIELD) Deploying Vault server..."
+	kubectl apply -f vault_nexus_deployment/vault-nexus-deployment.yaml
+	@echo "$(CHECK) Waiting for Vault to be ready..."
+	kubectl wait --for=condition=available deployment/vault-nexus -n security-nexus --timeout=300s
+	@echo "$(SHIELD) Deploying Vault Agent Injector..."
+	kubectl apply -f vault_nexus_deployment/vault-agent-injector.yaml
+	@echo "✅ Vault Nexus deployed successfully!"
+	@echo ""
+	@echo "📋 Next steps:"
+	@echo "  1. make vault-init       - Initialize Vault"
+	@echo "  2. make vault-setup      - Configure policies and secrets"
+	@echo "  3. Deploy services with VAULT=enabled"
+
+.PHONY: vault-init
+vault-init: ## 🔑 Initialize Vault (first-time setup)
+	@echo "$(SHIELD) Initializing Vault Nexus..."
+	@chmod +x vault_nexus_deployment/vault-init.sh
+	@vault_nexus_deployment/vault-init.sh
+
+.PHONY: vault-setup
+vault-setup: vault-setup-policies vault-setup-secrets ## 🛡️ Complete Vault setup (policies + secrets)
+
+.PHONY: vault-setup-policies
+vault-setup-policies: ## 📋 Setup Vault policies
+	@echo "$(SHIELD) Setting up Vault policies..."
+	@chmod +x vault_nexus_deployment/vault-setup-policies.sh
+	@vault_nexus_deployment/vault-setup-policies.sh
+
+.PHONY: vault-setup-secrets
+vault-setup-secrets: ## 🔑 Setup initial secrets in Vault
+	@echo "$(SHIELD) Setting up Vault secrets..."
+	@chmod +x vault_nexus_deployment/vault-setup-secrets.sh
+	@vault_nexus_deployment/vault-setup-secrets.sh
+
+.PHONY: vault-status
+vault-status: ## 📊 Check Vault status
+	@echo "$(SHIELD) Vault Nexus Status:"
+	@kubectl get pods -n security-nexus -l app=vault-nexus
+	@echo ""
+	@kubectl port-forward -n security-nexus service/vault-nexus 8200:8200 &
+	@sleep 2
+	@export VAULT_ADDR="http://localhost:8200" && vault status || true
+	@pkill -f "kubectl port-forward.*vault-nexus" || true
+
+.PHONY: vault-unseal
+vault-unseal: ## 🔓 Unseal Vault (provide unseal key when prompted)
+	@echo "$(SHIELD) Unsealing Vault..."
+	@kubectl port-forward -n security-nexus service/vault-nexus 8200:8200 &
+	@sleep 2
+	@export VAULT_ADDR="http://localhost:8200" && vault operator unseal
+	@pkill -f "kubectl port-forward.*vault-nexus" || true
+
+.PHONY: vault-ui
+vault-ui: ## 🖥️ Access Vault UI (opens port-forward)
+	@echo "$(SHIELD) Starting Vault UI access..."
+	@echo "$(INFO) Vault UI will be available at: http://localhost:8200"
+	@echo "$(INFO) Press Ctrl+C to stop port forwarding"
+	kubectl port-forward -n security-nexus service/vault-nexus 8200:8200
+
+# =============================================================================
+# 🚀 DUAL-MODE DEPLOYMENT SYSTEM - GENESIS ARCHITECTURE
 # =============================================================================
 
 .PHONY: deploy-dev

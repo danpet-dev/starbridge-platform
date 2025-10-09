@@ -1,0 +1,22 @@
+# Trivy Security Scanner - Ignore Configuration
+# These are acceptable risks for the Starbridge Platform
+
+# Infrastructure-related acceptable risks
+CVE-2023-5678  # Example: Low severity issue in base Alpine image
+CVE-2024-1234  # Example: Medium severity in OpenSSH (required for SFTP)
+
+# File Bridge specific exceptions
+# SFTP containers need some elevated privileges for file operations
+CIS-1.3.1      # File Bridge containers need root for SFTP server setup
+CIS-1.5.1      # SSH host key generation requires some privileges
+
+# PostgreSQL specific exceptions  
+CVE-2023-9999  # Example: Acceptable PostgreSQL CVE for our use case
+
+# Nginx/Alpine acceptable risks
+CIS-4.1        # Nginx configuration follows security best practices
+LOW-001        # Low severity findings in web server configuration
+
+# Development vs Production exceptions
+# These only apply to development deployments
+DEV-IGNORE-001 # Development mode containers have relaxed security

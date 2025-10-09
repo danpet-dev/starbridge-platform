@@ -1,9 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres
+  name: postgres-vault-enhanced
   labels:
     app: postgres
+    vault-enabled: "true"
 spec:
   replicas: 1
   selector:
@@ -13,7 +14,21 @@ spec:
     metadata:
       labels:
         app: postgres
+        vault-enabled: "true"
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "postgres"
+        vault.hashicorp.com/agent-inject-secret-config: "database/postgres/prod"
+        vault.hashicorp.com/agent-inject-template-config: |
+          {{- with secret "database/postgres/prod" -}}
+          export POSTGRES_DB="{{ .Data.data.database }}"
+          export POSTGRES_USER="{{ .Data.data.username }}"
+          export POSTGRES_PASSWORD="{{ .Data.data.password }}"
+          export PGDATA="/var/lib/postgresql/data/pgdata"
+          {{- end }}
+        vault.hashicorp.com/agent-pre-populate-only: "true"
     spec:
+      serviceAccountName: vault-auth
       securityContext:
         runAsNonRoot: true
         runAsUser: 999
@@ -41,24 +56,12 @@ spec:
                 - FOWNER
                 - SETGID
                 - SETUID
-          env:
-            - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: postgres-config
-                  key: POSTGRES_DB
-            - name: POSTGRES_USER
-              valueFrom:
-                configMapKeyRef:
-                  name: postgres-config
-                  key: POSTGRES_USER
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-secret
-                  key: POSTGRES_PASSWORD
-            - name: PGDATA
-              value: /var/lib/postgresql/data/pgdata
+          command:
+            - /bin/bash
+            - -c
+            - |
+              source /vault/secrets/config
+              exec docker-entrypoint.sh postgres
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
