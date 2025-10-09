@@ -8,9 +8,9 @@
 
 ## 🎯 Mission Statement
 
-Seamlessly connecting workflows across the digital frontier - transform your local file systems into enterprise-grade SFTP services accessible from Workflow Nexus and other fleet services, with military-grade security, enterprise scalability, and fleet-level automation.
+Seamlessly connecting workflows across the digital frontier - transform your local file systems into enterprise-grade SFTP services accessible from Workflow Nexus and other platform services, with enterprise-grade security, enterprise scalability, and platform-level automation.
 
-Part of **Admiral E.C. Copilot's Genesis Architecture v2.0.0** - the comprehensive Starbridge Platform fleet deployment system.
+Part of **Genesis Architecture v2.0.0** - the comprehensive Starbridge Platform fleet deployment system.
 
 ## 🚀 Features
 

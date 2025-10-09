@@ -8,7 +8,7 @@
 # Enables parallel port-forwarding sessions with session management,
 # automatic port allocation, and enterprise-grade monitoring.
 #
-# Author: Admiral E.C. Copilot, Engineering Corps
+# Author: Starbridge Platform Development Team
 # Version: 1.0.0
 # =============================================================================
 

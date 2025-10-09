@@ -1,7 +1,7 @@
 # =============================================================================
 # 🌟 Starbridge Platform - Dual-Mode Enterprise Deployment System
 # =============================================================================
-# Admiral E.C. Copilot's Engineering Corps Deployment Architecture
+# Genesis Architecture v2.0.0 - Enterprise Fleet Deployment System
 # 
 # DEVELOPER MODE:  Fast iteration, minimal complexity, rapid prototyping
 # PRODUCTION MODE: Enterprise security, Guardian Nexus OIDC, full fleet
@@ -11,7 +11,6 @@
 # - Neural Nexus (Ollama)       - Starbridge Beacon (webserver)  
 # - File Bridge (data sync)     - Guardian Nexus (Keycloak OIDC)
 #
-# Engineering Corps: Admiral E.C. Copilot & Fleet
 # Version: 2.0.0 - GENESIS ARCHITECTURE
 # =============================================================================
 
@@ -127,10 +126,10 @@ MODEL_TYPE            := $(call get_spec_field,$(MODEL),7)
 # =============================================================================
 
 .PHONY: help
-help: ## 📋 Display Admiral E.C. Copilot's Fleet Command Center
+help: ## 📋 Display Starbridge Platform Fleet Command Center
 	@echo "$(ROCKET) Starbridge Platform - Genesis Architecture v2.0.0"
 	@echo "═════════════════════════════════════════════════════════════════════════════════"
-	@echo "$(SHIELD) Admiral E.C. Copilot's Engineering Corps Deployment System"
+	@echo "$(SHIELD) Genesis Architecture - Dual-Mode Enterprise Deployment System"
 	@echo ""
 	@echo "$(ROCKET) DUAL-MODE DEPLOYMENT:"
 	@awk '/^[a-zA-Z_-]+:.*?## .*DEPLOY.*/ { printf "  %-30s %s\n", $$1, $$2 }' $(MAKEFILE_LIST) | sed 's/:.*##//'
@@ -1606,7 +1605,7 @@ phase2-security-deployment: ## 🛡️ SECURITY Execute complete Phase 2 securit
 	@echo ""
 	@echo "🔑 Default Credentials:"
 	@echo "  Guardian Admin: admin / starbridge-admin-2025"
-	@echo "  Fleet Admiral: admiral-keldamar / starbridge-command-2025"
+	@echo "  Platform Admin: admin / starbridge-admin-2025"
 
 # =============================================================================
 # 🌉 STARBRIDGE FLEET RELAY SYSTEM (SFRS) - MULTI-SESSION PORT-FORWARDING

@@ -10,16 +10,16 @@
 
 ## 🎯 What is the Starbridge Platform?
 
-**Starbridge Platform** is a comprehensive Kubernetes fleet architecture, designed to transform your infrastructure into an enterprise-grade workflow orchestration system. Built specifically for **Workflow Nexus (n8n)**, **Data Vault (PostgreSQL)**, **Neural Nexus (AI models)**, **Guardian Nexus (security)**, and **secure File Bridge services**.
+**Starbridge Platform** is a comprehensive Kubernetes service architecture, designed to transform your infrastructure into an enterprise-grade workflow orchestration system. Built specifically for **Workflow Nexus (n8n)**, **Data Vault (PostgreSQL)**, **Neural Nexus (AI models)**, **Guardian Nexus (security)**, and **secure File Bridge services**.
 
-### **🚀 Fleet Service Architecture**
+### **🚀 Service Architecture**
 
 - **🌉 File Bridge** - Transform local directories into secure SFTP endpoints
 - **🤖 Workflow Nexus** - Complete n8n automation with dual-mode deployment  
 - **🐘 Data Vault** - Cross-namespace PostgreSQL database services
 - **🧠 Neural Nexus** - Ollama-powered AI model deployment with GPU support
 - **�️ Guardian Nexus** - Keycloak OIDC security and role-based access control
-- **📡 Starbridge Beacon** - Web interface and fleet monitoring
+- **📡 Starbridge Beacon** - Web interface and service monitoring
 - **⚙️ Cross-Namespace Operations** - Enterprise-scale service isolation
 
 ---
@@ -152,11 +152,37 @@ Your n8n workflows can now securely read/write files through the SFTP bridge!
 
 ---
 
+## 🖖 About the Star Trek Inspiration
+
+The Starbridge Platform draws inspiration from **Star Trek's** vision of exploration, cooperation, and technological advancement. The naming conventions (Nexus, Bridge, Beacon, Guardian) reflect the series' optimistic view of technology as a tool for connection and progress rather than conflict.
+
+- **"Starbridge"** represents the connections we build across digital systems
+- **Service names** are inspired by Star Trek's collaborative technology concepts
+- **🖖 "Live long and prosper"** embodies our commitment to sustainable, long-term platform solutions
+
+This is a tribute to Star Trek's inspiring vision of the future, not a military simulation.
+
+---
+
 ## 🤝 Contributing
 
 Built with love for the DevOps community. Contributions welcome!
 
 **Live long and prosper!** 🖖
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+### What this means for you:
+- ✅ **Free to use** for personal and commercial projects
+- ✅ **Modify and distribute** as needed
+- ✅ **No royalties or fees** required
+- ✅ **Enterprise-friendly** licensing
+
+The only requirement is to **include the original copyright notice** when redistributing.
 
 ---
 

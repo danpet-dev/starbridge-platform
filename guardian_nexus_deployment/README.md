@@ -7,7 +7,7 @@ Guardian Nexus is the central security command center for Starbridge Platform, p
 ## 🎯 Features
 
 - **🔐 Enterprise Authentication** - Keycloak-based SSO with OIDC/SAML support
-- **🛡️ Role-Based Access Control** - Fleet Admiral, Engineering Corps, Workflow Operator roles  
+- **🛡️ Role-Based Access Control** - Platform Administrator, Technical Admin, Workflow Operator roles  
 - **🏢 Multi-Client Support** - Workflow Nexus (n8n) and Starbridge Beacon integration
 - **📊 High Availability** - PostgreSQL backend with persistent storage
 - **🔍 Security Monitoring** - Comprehensive logging and audit trails
@@ -73,24 +73,24 @@ Admin Console:
   Username: admin
   Password: starbridge-admin-2025
 
-Fleet Admiral Account:
-  Username: admiral-keldamar
-  Password: starbridge-command-2025
+Platform Administrator Account:
+  Username: admin
+  Password: starbridge-admin-2025
 
-Engineering Corps Account:
-  Username: admiral-copilot
-  Password: engineering-corps-2025
+Technical Admin Account:
+  Username: admin-tech
+  Password: technical-admin-2025
 ```
 
 ## 🎖️ User Roles & Permissions
 
 ### Role Hierarchy
-1. **🎖️ Fleet Admiral** - Complete platform administration
+1. **🎖️ Platform Administrator** - Complete platform administration
    - Full Keycloak admin access
    - All service management
    - User and role administration
 
-2. **⚙️ Engineering Corps** - Technical system administration
+2. **⚙️ Technical Admin** - Technical system administration
    - Infrastructure management
    - Service deployment and monitoring
    - Security configuration

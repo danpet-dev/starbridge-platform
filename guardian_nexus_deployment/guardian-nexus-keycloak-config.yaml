@@ -68,13 +68,13 @@ data:
       "roles": {
         "realm": [
           {
-            "name": "fleet-admiral",
-            "description": "Fleet Admiral - Full platform access",
+            "name": "platform-admin",
+            "description": "Platform Administrator - Full platform access",
             "composite": false
           },
           {
-            "name": "engineering-corps",
-            "description": "Engineering Corps - Technical administration",
+            "name": "technical-admin",
+            "description": "Technical Admin - Technical administration",
             "composite": false
           },
           {
@@ -91,36 +91,36 @@ data:
       },
       "users": [
         {
-          "username": "admiral-keldamar",
-          "firstName": "Fleet Admiral",
-          "lastName": "Keldamar",
-          "email": "admiral.keldamar@starbridge.platform",
+          "username": "admin",
+          "firstName": "Platform",
+          "lastName": "Administrator",
+          "email": "admin@starbridge.platform",
           "enabled": true,
           "emailVerified": true,
           "credentials": [
             {
               "type": "password",
-              "value": "starbridge-command-2025",
+              "value": "starbridge-admin-2025",
               "temporary": true
             }
           ],
-          "realmRoles": ["fleet-admiral", "engineering-corps", "workflow-operator", "platform-user"]
+          "realmRoles": ["platform-admin", "technical-admin", "workflow-operator", "platform-user"]
         },
         {
-          "username": "admiral-copilot",
-          "firstName": "Admiral E.C.",
-          "lastName": "Copilot",
-          "email": "admiral.copilot@starbridge.platform",
+          "username": "admin-tech",
+          "firstName": "Technical",
+          "lastName": "Administrator",
+          "email": "tech.admin@starbridge.platform",
           "enabled": true,
           "emailVerified": true,
           "credentials": [
             {
               "type": "password",
-              "value": "engineering-corps-2025",
+              "value": "technical-admin-2025",
               "temporary": true
             }
           ],
-          "realmRoles": ["engineering-corps", "workflow-operator", "platform-user"]
+          "realmRoles": ["technical-admin", "workflow-operator", "platform-user"]
         }
       ]
     }

@@ -1,6 +1,6 @@
 # � Neural Nexus - AI Fleet Command
 
-This directory contains the Kubernetes manifests and configuration for deploying **Neural Nexus** (Ollama) AI models as part of Admiral E.C. Copilot's Genesis Architecture v2.0.0.
+This directory contains the Kubernetes manifests and configuration for deploying **Neural Nexus** (Ollama) AI models as part of Genesis Architecture v2.0.0.
 
 ## 🎯 Fleet AI Capabilities
 

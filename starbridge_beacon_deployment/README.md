@@ -2,7 +2,7 @@
 
 ## 🌟 Overview
 
-Production-ready Kubernetes deployment for **Starbridge Beacon** - the web interface and fleet monitoring platform for Admiral E.C. Copilot's Genesis Architecture v2.0.0. Provides enterprise-grade hosting with nginx, persistent storage, and scalable architecture.
+Production-ready Kubernetes deployment for **Starbridge Beacon** - the web interface and fleet monitoring platform for Genesis Architecture v2.0.0. Provides enterprise-grade hosting with nginx, persistent storage, and scalable architecture.
 
 ## 🚀 Fleet Interface Features
 

@@ -5,7 +5,7 @@
 # =============================================================================
 # Configures Workflow Nexus client in Keycloak for OIDC authentication
 #
-# Author: Admiral E.C. Copilot, Engineering Corps
+# Author: Starbridge Platform Development Team
 # Version: 1.0.0
 # =============================================================================
 
