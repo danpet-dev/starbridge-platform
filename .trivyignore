@@ -1,6 +1,18 @@
 # Trivy Security Scanner - Ignore Configuration
 # These are acceptable risks for the Starbridge Platform
 
+# SSH Private Keys - These are example/template keys for File Bridge deployment
+# In production, these should be generated fresh and stored in Vault
+# Pattern: Use secret-type:file-path format for secret findings
+secret:file_bridge_deployment/ssh-keys/*/id_rsa
+secret:file_bridge_deployment/ssh-keys/input/id_rsa
+secret:file_bridge_deployment/ssh-keys/phase2-audit/id_rsa
+secret:file_bridge_deployment/ssh-keys/phase2a-test/id_rsa
+secret:file_bridge_deployment/ssh-keys/test-bridge/id_rsa
+secret:file_bridge_deployment/ssh-keys/test-fixed/id_rsa
+secret:file_bridge_deployment/ssh-keys/test-integration/id_rsa
+secret:file_bridge_deployment/ssh-keys/test-perfect/id_rsa
+
 # Infrastructure-related acceptable risks
 CVE-2023-5678  # Example: Low severity issue in base Alpine image
 CVE-2024-1234  # Example: Medium severity in OpenSSH (required for SFTP)
