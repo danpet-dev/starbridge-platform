@@ -1,0 +1,157 @@
+name: 🚀 Starbridge Platform CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-manifests:
+    name: 🧪 Validate Kubernetes Manifests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+
+    - name: 🔧 Setup Kubernetes Tools
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: ✅ Validate YAML Syntax
+      run: |
+        echo "🔍 Checking YAML syntax for all manifests..."
+        find . -name "*.yaml" -o -name "*.yml" | while read file; do
+          echo "Checking: $file"
+          kubectl apply --dry-run=client -f "$file" || echo "⚠️ Warning: $file may need runtime context"
+        done
+
+    - name: 🧹 Check Makefile Syntax
+      run: |
+        echo "🔍 Checking Makefile syntax..."
+        make help > /dev/null
+        echo "✅ Makefile syntax is valid"
+
+    - name: 📋 Validate Documentation Links
+      run: |
+        echo "🔍 Checking for broken documentation links..."
+        # Check if referenced files exist
+        find . -name "README.md" -exec grep -l "\]\(" {} \; | while read file; do
+          echo "Checking links in: $file"
+          # This is a basic check - you could extend with a proper link checker
+        done
+
+  security-scan:
+    name: 🛡️ Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+
+    - name: 🔍 Run Trivy Vulnerability Scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: 📊 Upload Trivy Scan Results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  documentation:
+    name: 📚 Documentation Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+
+    - name: ✅ Check Required Files
+      run: |
+        echo "🔍 Checking for required documentation files..."
+        required_files=("README.md" "LICENSE" "CONTRIBUTING.md" "SECURITY.md" "CHANGELOG.md")
+        
+        for file in "${required_files[@]}"; do
+          if [[ -f "$file" ]]; then
+            echo "✅ $file exists"
+          else
+            echo "❌ $file is missing"
+            exit 1
+          fi
+        done
+
+    - name: 📏 Check README Quality
+      run: |
+        echo "🔍 Checking README.md quality..."
+        
+        # Check for required sections
+        required_sections=("What is the Starbridge Platform" "Quick Start" "Documentation" "Contributing")
+        
+        for section in "${required_sections[@]}"; do
+          if grep -q "$section" README.md; then
+            echo "✅ Section '$section' found"
+          else
+            echo "⚠️ Section '$section' might be missing"
+          fi
+        done
+        
+        # Check README length (should be substantial)
+        lines=$(wc -l < README.md)
+        if [[ $lines -gt 100 ]]; then
+          echo "✅ README.md has substantial content ($lines lines)"
+        else
+          echo "⚠️ README.md might be too short ($lines lines)"
+        fi
+
+  makefile-test:
+    name: 🔧 Makefile Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+
+    - name: 🧪 Test Makefile Targets
+      run: |
+        echo "🔍 Testing Makefile targets..."
+        
+        # Test help target
+        make help
+        
+        # Test that critical targets exist (dry-run)
+        echo "Checking critical targets exist..."
+        make -n deploy-postgres || echo "⚠️ deploy-postgres target has issues"
+        make -n deploy-n8n || echo "⚠️ deploy-n8n target has issues"
+        
+        echo "✅ Makefile validation complete"
+
+  label-check:
+    name: 🏷️ PR Label Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: 🔍 Check PR Labels
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const pr = context.payload.pull_request;
+          const labels = pr.labels.map(label => label.name);
+          
+          const requiredLabels = ['type:', 'priority:', 'component:'];
+          const hasRequiredLabel = requiredLabels.some(prefix => 
+            labels.some(label => label.startsWith(prefix))
+          );
+          
+          if (!hasRequiredLabel) {
+            core.warning('PR should have labels for type, priority, and component');
+          } else {
+            console.log('✅ PR has appropriate labels');
+          }

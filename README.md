@@ -146,9 +146,38 @@ Your n8n workflows can now securely read/write files through the SFTP bridge!
 
 ## 📚 Documentation
 
-- **[File Bridge Module](file_bridge_deployment/README.md)** - Complete file bridge documentation (WIP)
-- **[n8n Deployment](n8n_deployment/README.md)** - n8n setup and configuration (WIP)
-- **[Ollama AI](ollama_deployment/README.md)** - AI model deployment guide (WIP)
+- **[File Bridge Module](file_bridge_deployment/README.md)** - Complete file bridge documentation
+- **[Workflow Nexus Deployment](workflow_nexus_deployment/README.md)** - n8n setup and configuration
+- **[Neural Nexus Deployment](neural_nexus_deployment/README.md)** - AI model deployment guide
+- **[Guardian Nexus Security](guardian_nexus_deployment/README.md)** - Authentication and authorization
+- **[Data Vault Database](data_vault_deployment/README.md)** - PostgreSQL database services
+- **[Starbridge Beacon Web](starbridge_beacon_deployment/README.md)** - Web interface and monitoring
+
+---
+
+## ⚠️ Known Limitations & Requirements
+
+### **Prerequisites:**
+- **Kubernetes cluster** (v1.20+ recommended)
+- **kubectl** configured and working
+- **make** installed on your system
+- **Persistent storage** available for databases and file services
+
+### **Current Limitations:**
+- **Single-cluster design** - Cross-cluster deployments not yet supported
+- **Manual secret management** - Automated secret rotation not implemented
+- **Basic monitoring** - Advanced observability features planned for future releases
+- **Development focus** - Production hardening is ongoing
+
+### **Resource Requirements:**
+- **Minimum**: 4 CPU cores, 8GB RAM, 50GB storage
+- **Recommended**: 8 CPU cores, 16GB RAM, 200GB storage
+- **Production**: Scale according to workload demands
+
+### **Supported Platforms:**
+- ✅ **Linux** (primary development platform)
+- ✅ **macOS** (tested with Rancher Desktop)
+- ⚠️ **Windows** (may require WSL2 for best compatibility)
 
 ---
 
