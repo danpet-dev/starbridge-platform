@@ -1,9 +1,7 @@
 <div align="center">
   <img src="assets/logo-starbridge-platform.jpeg" alt="Starbridge Platform Logo" width="500"/>
   
-  # ⭐ Admiral E.C. Copilot's Genesis Architecture v2.0.0
-
-  **Starbridge Platform Fleet Command**
+  **Starbridge Platform**
 
   > *"Seamlessly connecting workflows across the digital frontier"* 🖖
 </div>
@@ -148,9 +146,9 @@ Your n8n workflows can now securely read/write files through the SFTP bridge!
 
 ## 📚 Documentation
 
-- **[File Bridge Module](file_bridge_deployment/README.md)** - Complete file bridge documentation
-- **[n8n Deployment](n8n_deployment/README.md)** - n8n setup and configuration
-- **[Ollama AI](ollama_deployment/README.md)** - AI model deployment guide
+- **[File Bridge Module](file_bridge_deployment/README.md)** - Complete file bridge documentation (WIP)
+- **[n8n Deployment](n8n_deployment/README.md)** - n8n setup and configuration (WIP)
+- **[Ollama AI](ollama_deployment/README.md)** - AI model deployment guide (WIP)
 
 ---
 
