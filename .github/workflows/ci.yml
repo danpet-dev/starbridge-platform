@@ -16,7 +16,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: 🔧 Setup Kubernetes Tools
-      uses: azure/setup-kubectl@v3
+      uses: azure/setup-kubectl@v4
       with:
         version: 'v1.28.0'
 
@@ -63,7 +63,7 @@ jobs:
         trivyignores: '.trivyignore'
 
     - name: 📊 Upload Trivy Scan Results
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'

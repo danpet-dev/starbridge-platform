@@ -45,15 +45,16 @@ jobs:
         echo '```' >> release_notes.md
 
     - name: 🎯 Create Release
-      uses: actions/create-release@v1
+      uses: softprops/action-gh-release@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        release_name: 🚀 Starbridge Platform ${{ steps.release_notes.outputs.version }}
+        name: 🚀 Starbridge Platform ${{ steps.release_notes.outputs.version }}
         body_path: release_notes.md
         draft: false
         prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+        generate_release_notes: true
+        make_latest: true
 
     - name: 📊 Update Release Statistics
       run: |
