@@ -1,7 +1,7 @@
 <div align="center">
   <img src="assets/logo-starbridge-platform.jpeg" alt="Starbridge Platform Logo" width="500"/>
   
-  **Starbridge Platform**
+  # **Starbridge Platform**
 
   > *"Seamlessly connecting workflows across the digital frontier"* 🖖
 </div>
