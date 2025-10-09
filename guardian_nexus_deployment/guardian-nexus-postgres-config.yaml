@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: guardian-nexus-postgres-config
+  namespace: security-nexus
+  labels:
+    app: guardian-nexus
+    component: database
+    platform: starbridge
+data:
+  postgresql.conf: |
+    # Guardian Nexus PostgreSQL Configuration
+    # Optimized for Keycloak authentication workloads
+    
+    # Connection Settings
+    listen_addresses = '*'
+    port = 5432
+    max_connections = 200
+    
+    # Memory Settings
+    shared_buffers = 256MB
+    effective_cache_size = 1GB
+    work_mem = 4MB
+    maintenance_work_mem = 64MB
+    
+    # WAL Settings
+    wal_level = replica
+    max_wal_size = 1GB
+    min_wal_size = 80MB
+    
+    # Logging
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = 'log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_min_messages = warning
+    log_min_error_statement = error
+    log_statement = 'mod'
+    
+    # Security
+    ssl = off
+    password_encryption = scram-sha-256
+    
+    # Performance
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    
+  pg_hba.conf: |
+    # Guardian Nexus PostgreSQL Access Control
+    # TYPE  DATABASE        USER            ADDRESS                 METHOD
+    
+    # Local connections
+    local   all             all                                     trust
+    
+    # IPv4 local connections
+    host    all             all             127.0.0.1/32            scram-sha-256
+    
+    # Container connections
+    host    all             all             10.0.0.0/8              scram-sha-256
+    host    all             all             172.16.0.0/12           scram-sha-256
+    host    all             all             192.168.0.0/16          scram-sha-256
+    
+    # Keycloak specific
+    host    guardian_db     guardian_nexus  0.0.0.0/0               scram-sha-256

@@ -1,0 +1,20 @@
+🔑 SSH Key Deployment Instructions for Bridge: phase2-audit
+
+1. Copy the public key to your target host:
+   scp /home/keldamar/repos/rancher-deployment-test/file_bridge_deployment/ssh-keys/phase2-audit/id_rsa.pub user@target-host:/tmp/
+
+2. On the target host, add the key to authorized_keys:
+   mkdir -p ~/.ssh
+   cat /tmp/id_rsa.pub >> ~/.ssh/authorized_keys
+   chmod 600 ~/.ssh/authorized_keys
+   chmod 700 ~/.ssh
+   rm /tmp/id_rsa.pub
+
+3. Test the connection:
+   ssh -i /home/keldamar/repos/rancher-deployment-test/file_bridge_deployment/ssh-keys/phase2-audit/id_rsa user@target-host
+
+4. Update your Makefile deployment with:
+   HOST=target-host
+   USER=username
+   PATH=/path/to/mount
+

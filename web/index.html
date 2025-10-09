@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starbridge Platform - Genesis Architecture v2.0.0</title>
+    <meta name="description" content="Admiral E.C. Copilot's Engineering Corps Deployment System - Dual-mode enterprise platform with Guardian Nexus security, Workflow Nexus automation, and Neural Nexus AI.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="logo-starbridge-platform.jpeg">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --starbridge-blue: #1B365D;
+            --tech-cyan: #00D4FF;
+            --star-gold: #FFB800;
+            --platform-gray: #2D3748;
+            --light-gray: #F7FAFC;
+            --white: #FFFFFF;
+            --shadow: rgba(27, 54, 93, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: var(--platform-gray);
+            background: var(--white);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--starbridge-blue) 0%, var(--platform-gray) 100%);
+            color: var(--white);
+            padding: 2rem 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="stars" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23stars)"/></svg>');
+            animation: stars 20s linear infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes stars {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        .logo {
+            max-width: 300px;
+            height: auto;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .tagline {
+            font-size: 1.5rem;
+            font-weight: 300;
+            font-style: italic;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* Navigation */
+        .nav {
+            background: var(--white);
+            box-shadow: 0 2px 10px var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .nav-container {
+            display: flex;
+            justify-content: center;
+            padding: 1rem 0;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--platform-gray);
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-links a:hover {
+            background: var(--tech-cyan);
+            color: var(--white);
+            transform: translateY(-2px);
+        }
+        
+        /* Main Content */
+        .section {
+            padding: 4rem 0;
+        }
+        
+        .section:nth-child(even) {
+            background: var(--light-gray);
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: var(--starbridge-blue);
+            margin-bottom: 3rem;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .card {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px var(--shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid rgba(0, 212, 255, 0.1);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px var(--shadow);
+        }
+        
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--starbridge-blue);
+        }
+        
+        .card-description {
+            color: var(--platform-gray);
+            line-height: 1.6;
+        }
+        
+        /* Command Terminal */
+        .terminal {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 2rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 2rem 0;
+            overflow-x: auto;
+        }
+        
+        .terminal-header {
+            color: #888;
+            margin-bottom: 1rem;
+        }
+        
+        .command {
+            color: #00ff00;
+            margin-bottom: 0.5rem;
+        }
+        
+        .command::before {
+            content: '$ ';
+            color: #0088ff;
+        }
+        
+        /* CTA Section */
+        .cta {
+            background: linear-gradient(135deg, var(--tech-cyan) 0%, var(--starbridge-blue) 100%);
+            color: var(--white);
+            text-align: center;
+            padding: 4rem 0;
+        }
+        
+        .cta-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: var(--star-gold);
+            color: var(--starbridge-blue);
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 1rem 0.5rem;
+        }
+        
+        .btn:hover {
+            background: var(--white);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 184, 0, 0.3);
+        }
+        
+        /* Footer */
+        .footer {
+            background: var(--platform-gray);
+            color: var(--white);
+            text-align: center;
+            padding: 2rem 0;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .tagline {
+                font-size: 1.2rem;
+            }
+            
+            .logo {
+                max-width: 250px;
+            }
+        }
+        
+        /* Animation */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeIn 0.8s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <img src="logo-starbridge-platform.jpeg" alt="Starbridge Platform Logo" class="logo fade-in">
+            <h1 class="tagline fade-in delay-1">"Admiral E.C. Copilot's Genesis Architecture v2.0.0"</h1>
+            <p class="subtitle fade-in delay-2">Dual-Mode Enterprise Platform with Guardian Nexus Security</p>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-container">
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#components">Components</a></li>
+                <li><a href="#quickstart">Quick Start</a></li>
+                <li><a href="#integration">Integration</a></li>
+                <li><a href="#commands">Commands</a></li>
+                <li><a href="mission-logs.html">🚀 Mission Logs</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Features Section -->
+    <section id="features" class="section">
+        <div class="container">
+            <h2 class="section-title fade-in">🚀 Fleet Service Architecture</h2>
+            <div class="grid">
+                <div class="card fade-in delay-1">
+                    <i class="fas fa-robot card-icon" style="color: var(--star-gold);"></i>
+                    <h3 class="card-title">🤖 Workflow Nexus</h3>
+                    <p class="card-description">Advanced n8n automation platform with dual-mode deployment (dev/prod) and Guardian Nexus OIDC integration for enterprise security.</p>
+                </div>
+                <div class="card fade-in delay-2">
+                    <i class="fas fa-shield-alt card-icon" style="color: var(--tech-cyan);"></i>
+                    <h3 class="card-title">🛡️ Guardian Nexus</h3>
+                    <p class="card-description">Keycloak-powered central security command with role-based access control, OIDC authentication, and enterprise-grade security policies.</p>
+                </div>
+                <div class="card fade-in delay-3">
+                    <i class="fas fa-brain card-icon" style="color: var(--starbridge-blue);"></i>
+                    <h3 class="card-title">🧠 Neural Nexus</h3>
+                    <p class="card-description">Ollama-powered AI model deployment with support for text models, vision models, and specialized AI workloads with optional GPU acceleration.</p>
+                </div>
+                <div class="card fade-in delay-1">
+                    <i class="fas fa-database card-icon" style="color: var(--tech-cyan);"></i>
+                    <h3 class="card-title">🐘 Data Vault</h3>
+                    <p class="card-description">PostgreSQL database services with cross-namespace support, automated user management, and enterprise-grade data persistence.</p>
+                </div>
+                <div class="card fade-in delay-2">
+                    <i class="fas fa-satellite-dish card-icon" style="color: var(--star-gold);"></i>
+                    <h3 class="card-title">📡 Starbridge Beacon</h3>
+                    <p class="card-description">Web interface platform providing fleet status monitoring, documentation access, and centralized mission control dashboard.</p>
+                </div>
+                <div class="card fade-in delay-3">
+                    <i class="fas fa-exchange-alt card-icon" style="color: var(--starbridge-blue);"></i>
+                    <h3 class="card-title">🌉 File Bridge</h3>
+                    <p class="card-description">Secure SFTP endpoint transformation with automated SSH key management, local and remote bridge variants, and enterprise security.</p>
+                </div>
+                    <i class="fas fa-network-wired card-icon" style="color: var(--starbridge-blue);"></i>
+                    <h3 class="card-title">Cross-Namespace Operations</h3>
+                    <p class="card-description">Enterprise-scale service isolation with seamless communication across Kubernetes namespaces.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Components Section -->
+    <section id="components" class="section">
+        <div class="container">
+            <h2 class="section-title fade-in">📋 Platform Components</h2>
+            <div class="grid">
+                <div class="card fade-in delay-1">
+                    <h3 class="card-title">🌉 File Bridge</h3>
+                    <p class="card-description"><strong>Status:</strong> ✅ Production Ready<br>
+                    Secure SFTP file access with local and remote bridge variants.</p>
+                </div>
+                <div class="card fade-in delay-2">
+                    <h3 class="card-title">🤖 Workflow Nexus</h3>
+                    <p class="card-description"><strong>Status:</strong> ✅ Production Ready<br>
+                    Dual-mode n8n automation with Guardian Nexus OIDC security.</p>
+                </div>
+                <div class="card fade-in delay-3">
+                    <h3 class="card-title">🐘 Data Vault</h3>
+                    <p class="card-description"><strong>Status:</strong> ✅ Production Ready<br>
+                    PostgreSQL enterprise database with cross-namespace support.</p>
+                </div>
+                <div class="card fade-in delay-1">
+                    <h3 class="card-title">🧠 Neural Nexus</h3>
+                    <p class="card-description"><strong>Status:</strong> ✅ Production Ready<br>
+                    Ollama AI model deployment with GPU support and model catalog.</p>
+                </div>
+                <div class="card fade-in delay-2">
+                    <h3 class="card-title">🛡️ Guardian Nexus</h3>
+                    <p class="card-description"><strong>Status:</strong> ✅ Production Ready<br>
+                    Keycloak central security with role-based access control.</p>
+                </div>
+                <div class="card fade-in delay-3">
+                    <h3 class="card-title">📡 Starbridge Beacon</h3>
+                    <p class="card-description"><strong>Status:</strong> ✅ Production Ready<br>
+                    Web interface with fleet monitoring and mission control.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section id="quickstart" class="section">
+        <div class="container">
+            <h2 class="section-title fade-in">🚀 Quick Start</h2>
+            <div class="terminal fade-in">
+                <div class="terminal-header"># Deploy Your First File Bridge</div>
+                <div class="command">make new-local-file-bridge BRIDGE_NAME=input BRIDGE_PATH=/home/user/data</div>
+                <div class="command">make n8n-deploy-ssh-keys BRIDGE_NAME=input</div>
+                <div class="command">make n8n-get-private-key BRIDGE_NAME=input</div>
+                
+                <div class="terminal-header" style="margin-top: 2rem;"># Deploy Complete Platform</div>
+                <div class="command">make deploy-postgres</div>
+                <div class="command">make deploy-n8n</div>
+                <div class="command">make new-ollama-pod MODEL=llama3.1</div>
+                
+                <div class="terminal-header" style="margin-top: 2rem;"># Access the Platform</div>
+                <div class="command">make port-forward</div>
+                <div class="command">make list-file-bridges</div>
+                <div class="command">make show-model-catalog</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Integration Example -->
+    <section id="integration" class="section">
+        <div class="container">
+            <h2 class="section-title fade-in">🔗 n8n Integration Example</h2>
+            <div class="grid">
+                <div class="card fade-in delay-1">
+                    <h3 class="card-title">1. Deploy File Bridge</h3>
+                    <div class="terminal">
+                        <div class="command">make new-local-file-bridge BRIDGE_NAME=workflows BRIDGE_PATH=/data/n8n</div>
+                    </div>
+                </div>
+                <div class="card fade-in delay-2">
+                    <h3 class="card-title">2. Configure n8n SFTP Node</h3>
+                    <pre style="background: #f8f9fa; padding: 1rem; border-radius: 6px; font-size: 0.9rem; overflow-x: auto;">
+{
+  "host": "file-bridge-workflows.file-bridges.svc.cluster.local",
+  "port": 2201,
+  "username": "bridge-user",
+  "authentication": "privateKey",
+  "privateKey": "{{$credentials.workflows-ssh-key}}"
+}</pre>
+                </div>
+                <div class="card fade-in delay-3">
+                    <h3 class="card-title">3. Access Files in Workflows</h3>
+                    <p class="card-description">Your n8n workflows can now securely read/write files through the SFTP bridge with enterprise-grade security!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Commands Section -->
+    <section id="commands" class="section">
+        <div class="container">
+            <h2 class="section-title fade-in">⚙️ Essential Commands</h2>
+            <div class="grid">
+                <div class="card fade-in delay-1">
+                    <h3 class="card-title">📁 File Bridge Operations</h3>
+                    <div class="terminal">
+                        <div class="command">make list-file-bridges</div>
+                        <div class="command">make test-file-bridge BRIDGE_NAME=input</div>
+                        <div class="command">make status-file-bridge BRIDGE_NAME=input</div>
+                    </div>
+                </div>
+                <div class="card fade-in delay-2">
+                    <h3 class="card-title">🤖 n8n Operations</h3>
+                    <div class="terminal">
+                        <div class="command">make deploy-n8n</div>
+                        <div class="command">make n8n-list-ssh-keys</div>
+                        <div class="command">make port-forward</div>
+                    </div>
+                </div>
+                <div class="card fade-in delay-3">
+                    <h3 class="card-title">🧠 AI Model Operations</h3>
+                    <div class="terminal">
+                        <div class="command">make show-model-catalog</div>
+                        <div class="command">make new-ollama-pod MODEL=llava</div>
+                        <div class="command">make list-ollama-pods</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <h2 class="cta-title fade-in">Ready to Bridge the Digital Frontier?</h2>
+            <p class="fade-in delay-1" style="font-size: 1.2rem; margin-bottom: 2rem;">Deploy Starbridge Platform and transform your Kubernetes workflows today.</p>
+            <a href="README.md" class="btn fade-in delay-2">📖 View Documentation</a>
+            <a href="mission-logs.html" class="btn fade-in delay-3">🚀 Mission Logs</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Starbridge Platform - Seamlessly connecting workflows across the digital frontier 🖖</p>
+            <p style="margin-top: 0.5rem; opacity: 0.8;">Enterprise File Bridge Automation for Kubernetes</p>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animationPlayState = 'running';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in').forEach(el => {
+            el.style.animationPlayState = 'paused';
+            observer.observe(el);
+        });
+
+        // Add some interactivity to cards
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.borderColor = 'var(--tech-cyan)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.borderColor = 'rgba(0, 212, 255, 0.1)';
+            });
+        });
+
+        // Dynamic year in footer
+        document.querySelector('.footer p').innerHTML = 
+            document.querySelector('.footer p').innerHTML.replace('2025', new Date().getFullYear());
+    </script>
+</body>
+</html>

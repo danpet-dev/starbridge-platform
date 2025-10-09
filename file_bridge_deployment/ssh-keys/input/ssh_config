@@ -1,0 +1,10 @@
+Host file-bridge-input
+    HostName %HOST%
+    User %USER%
+    Port 22
+    IdentityFile /home/keldamar/repos/rancher-deployment-test/file_bridge_deployment/ssh-keys/input/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    ConnectTimeout 30

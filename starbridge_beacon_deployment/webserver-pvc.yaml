@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: starbridge-webserver-pvc
+  namespace: starbridge-platform
+  labels:
+    app: starbridge-webserver
+    component: storage
+    platform: starbridge
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: local-path

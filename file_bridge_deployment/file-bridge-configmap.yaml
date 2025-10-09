@@ -1,0 +1,169 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: file-bridges
+  labels:
+    app: file-bridge
+    component: namespace
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: file-bridge-template
+  namespace: file-bridges
+  labels:
+    app: file-bridge
+    component: config
+data:
+  # SSH configuration template
+  ssh-config-template: |
+    Host TARGET_HOST
+        HostName TARGET_HOST
+        User SSH_USER
+        Port 22
+        IdentityFile /etc/ssh-keys/id_rsa
+        StrictHostKeyChecking no
+        UserKnownHostsFile /dev/null
+        ServerAliveInterval 60
+        ServerAliveCountMax 3
+        ConnectTimeout 30
+        
+  # SSHFS mount options template  
+  sshfs-options-template: |
+    -o allow_other
+    -o default_permissions
+    -o follow_symlinks
+    -o ServerAliveInterval=15
+    -o ServerAliveCountMax=3
+    -o reconnect
+    -o transform_symlinks
+    -o idmap=user
+    -o uid=1000
+    -o gid=1000
+
+  # SFTP server configuration template
+  sftp-config-template: |
+    Port SFTP_PORT
+    HostKey /etc/ssh-keys/ssh_host_rsa_key
+    AuthorizedKeysFile /etc/ssh-keys/authorized_keys
+    PasswordAuthentication no
+    PubkeyAuthentication yes
+    PermitRootLogin no
+    ChrootDirectory /data
+    Subsystem sftp internal-sftp
+    ForceCommand internal-sftp
+    
+  # Permission enforcement script
+  permission-enforcer.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    MODE="${ACCESS_MODE:-read-write}"
+    MOUNT_PATH="/data"
+    
+    case "$MODE" in
+      "read-only")
+        echo "🔒 Enforcing read-only access..."
+        find "$MOUNT_PATH" -type d -exec chmod 555 {} \;
+        find "$MOUNT_PATH" -type f -exec chmod 444 {} \;
+        ;;
+      "write-only")
+        echo "📝 Enforcing write-only access..."
+        find "$MOUNT_PATH" -type d -exec chmod 733 {} \;
+        find "$MOUNT_PATH" -type f -exec chmod 622 {} \;
+        ;;
+      "append-only")
+        echo "📜 Enforcing append-only access..."
+        find "$MOUNT_PATH" -type d -exec chmod 755 {} \;
+        find "$MOUNT_PATH" -type f -exec chmod 644 {} \;
+        chattr +a "$MOUNT_PATH"/* 2>/dev/null || true
+        ;;
+      "read-write")
+        echo "🔓 Enforcing read-write access..."
+        find "$MOUNT_PATH" -type d -exec chmod 755 {} \;
+        find "$MOUNT_PATH" -type f -exec chmod 644 {} \;
+        ;;
+      *)
+        echo "❌ Unknown access mode: $MODE"
+        exit 1
+        ;;
+    esac
+    
+    echo "✅ Permissions enforced for mode: $MODE"
+
+  # Health check script
+  healthcheck.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Check SSHFS mount
+    if ! mountpoint -q /data; then
+        echo "❌ SSHFS mount not active"
+        exit 1
+    fi
+    
+    # Check SFTP service
+    if ! pgrep -f "sshd.*sftp" > /dev/null; then
+        echo "❌ SFTP service not running"
+        exit 1
+    fi
+    
+    # Test file operations based on mode
+    MODE="${ACCESS_MODE:-read-write}"
+    TEST_FILE="/data/.healthcheck-$(date +%s)"
+    
+    case "$MODE" in
+      "read-only")
+        if [ ! -r /data ]; then
+            echo "❌ Read access test failed"
+            exit 1
+        fi
+        ;;
+      "write-only"|"read-write"|"append-only")
+        if ! touch "$TEST_FILE" 2>/dev/null; then
+            echo "❌ Write access test failed"
+            exit 1
+        fi
+        rm -f "$TEST_FILE" 2>/dev/null || true
+        ;;
+    esac
+    
+    echo "✅ File bridge healthy (mode: $MODE)"
+
+  # Connection monitoring script
+  monitor.sh: |
+    #!/bin/bash
+    
+    BRIDGE_NAME="${BRIDGE_NAME:-unknown}"
+    LOG_FILE="/var/log/bridge-monitor.log"
+    
+    log() {
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$BRIDGE_NAME] $1" | tee -a "$LOG_FILE"
+    }
+    
+    log "🔍 Starting connection monitor..."
+    
+    while true; do
+        if /opt/scripts/healthcheck.sh &>/dev/null; then
+            log "✅ Bridge healthy"
+        else
+            log "❌ Bridge unhealthy - attempting recovery..."
+            
+            # Attempt to remount SSHFS
+            umount /data 2>/dev/null || true
+            sleep 5
+            
+            sshfs "$SSH_USER@$TARGET_HOST:$REMOTE_PATH" /data \
+                -o "$(cat /opt/config/sshfs-options)" \
+                -o IdentityFile=/etc/ssh-keys/id_rsa
+                
+            if [ $? -eq 0 ]; then
+                log "✅ SSHFS remount successful"
+                /opt/scripts/permission-enforcer.sh
+            else
+                log "❌ SSHFS remount failed"
+            fi
+        fi
+        
+        sleep 30
+    done

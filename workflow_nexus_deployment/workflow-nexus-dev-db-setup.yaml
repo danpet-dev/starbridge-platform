@@ -1,0 +1,95 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: workflow-nexus-db-setup-dev
+  labels:
+    app: workflow-nexus
+    component: db-setup
+    platform: starbridge
+    mode: developer
+spec:
+  template:
+    metadata:
+      labels:
+        app: workflow-nexus
+        component: db-setup
+        platform: starbridge
+        mode: developer
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: db-setup
+        image: postgres:15
+        env:
+        - name: PGHOST
+          value: "postgres-service.data-vault-dev.svc.cluster.local"
+        - name: PGPORT
+          value: "5432"
+        - name: PGUSER
+          value: "admin"
+        - name: PGPASSWORD
+          value: "postgres123"  # Fixed: Using known password instead of cross-namespace secret
+        - name: TARGET_DB
+          value: "workflow_nexus_dev"
+        - name: TARGET_USER
+          value: "workflow_nexus_dev_user"
+        - name: TARGET_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: workflow-nexus-secret
+              key: DB_POSTGRESDB_PASSWORD
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "🔧 ENGINEERING REPAIR: Cross-namespace Data Vault setup"
+          echo "Data Vault Host: $PGHOST"
+          echo "Target Database: $TARGET_DB"
+          echo "Target User: $TARGET_USER"
+          
+          echo "Waiting for Data Vault to be ready..."
+          until pg_isready -h $PGHOST -p $PGPORT -U $PGUSER; do
+            echo "Waiting for Data Vault..."
+            sleep 2
+          done
+          
+          echo "✅ Data Vault is ready!"
+          echo "✅ Data Vault is ready!"
+          
+          echo "🐘 Creating database and user for Workflow Nexus..."
+          
+          # Create database if it doesn't exist
+          if ! psql -h $PGHOST -p $PGPORT -U $PGUSER -d postgres -lqt | cut -d \| -f 1 | grep -qw $TARGET_DB; then
+            echo "Creating database: $TARGET_DB"
+            createdb -h $PGHOST -p $PGPORT -U $PGUSER $TARGET_DB
+          else
+            echo "Database $TARGET_DB already exists"
+          fi
+          
+          # Create user if it doesn't exist
+          psql -h $PGHOST -p $PGPORT -U $PGUSER -d postgres << EOF
+          DO \$\$
+          BEGIN
+            IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$TARGET_USER') THEN
+              CREATE USER $TARGET_USER WITH PASSWORD '$TARGET_PASSWORD';
+              GRANT ALL PRIVILEGES ON DATABASE $TARGET_DB TO $TARGET_USER;
+              ALTER USER $TARGET_USER CREATEDB;
+              RAISE NOTICE '✅ User $TARGET_USER created and granted privileges';
+            ELSE
+              RAISE NOTICE '💡 User $TARGET_USER already exists';
+            END IF;
+          END
+          \$\$;
+          EOF
+          
+          # Grant schema permissions on target database
+          psql -h $PGHOST -p $PGPORT -U $PGUSER -d $TARGET_DB << EOF
+          GRANT ALL ON SCHEMA public TO $TARGET_USER;
+          GRANT CREATE ON SCHEMA public TO $TARGET_USER;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $TARGET_USER;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $TARGET_USER;
+          EOF
+          
+          echo "✅ Engineering Repair Complete: Data Vault setup successful!"
+          echo "Database: $TARGET_DB | User: $TARGET_USER | Host: $PGHOST"
+  backoffLimit: 3

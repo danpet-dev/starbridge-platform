@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workflow-nexus-config
+  labels:
+    app: workflow-nexus
+    platform: starbridge
+    mode: developer
+data:
+  N8N_HOST: "0.0.0.0"
+  N8N_PORT: "5678"
+  N8N_PROTOCOL: "http"
+  WEBHOOK_URL: "http://localhost:8080"
+  GENERIC_TIMEZONE: "UTC"
+  N8N_LOG_LEVEL: "info"
+  N8N_METRICS: "true"
+  N8N_USER_MANAGEMENT_DISABLED: "true"
+  N8N_SECURE_COOKIE: "false"
+  N8N_AUTHENTICATION_TYPE: "email"
+  # Data Vault configuration - cross-namespace to Data Vault
+  DB_TYPE: "postgresdb"
+  DB_POSTGRESDB_HOST: "postgres-service.data-vault-dev.svc.cluster.local"
+  DB_POSTGRESDB_PORT: "5432"
+  DB_POSTGRESDB_DATABASE: "workflow_nexus_dev"
+  DB_POSTGRESDB_USER: "workflow_nexus_dev_user"

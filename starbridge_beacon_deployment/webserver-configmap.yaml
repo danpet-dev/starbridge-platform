@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: starbridge-webserver-config
+  namespace: starbridge-platform
+  labels:
+    app: starbridge-webserver
+    component: config
+    platform: starbridge
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /var/run/nginx.pid;
+    
+    events {
+        worker_connections 1024;
+    }
+    
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+        
+        # Logging
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+        access_log /var/log/nginx/access.log main;
+        
+        # Performance
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        types_hash_max_size 2048;
+        
+        # Compression
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 10240;
+        gzip_proxied expired no-cache no-store private must-revalidate auth;
+        gzip_types
+            text/plain
+            text/css
+            text/xml
+            text/javascript
+            application/javascript
+            application/xml+rss
+            application/json;
+        
+        # Security headers
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "no-referrer-when-downgrade" always;
+        add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+        
+        server {
+            listen 80;
+            server_name _;
+            root /usr/share/nginx/html;
+            index index.html index.htm;
+            
+            # Starbridge Platform Web Interface
+            location / {
+                try_files $uri $uri/ =404;
+                expires 1h;
+                add_header Cache-Control "public, immutable";
+            }
+            
+            # API health check
+            location /health {
+                access_log off;
+                return 200 "Starbridge Platform Web Interface - Operational\n";
+                add_header Content-Type text/plain;
+            }
+            
+            # Error pages
+            error_page 404 /404.html;
+            error_page 500 502 503 504 /50x.html;
+            
+            location = /50x.html {
+                root /usr/share/nginx/html;
+            }
+        }
+    }

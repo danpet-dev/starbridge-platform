@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: guardian-nexus-db-pvc
+  namespace: security-nexus
+  labels:
+    app: guardian-nexus
+    component: database
+    platform: starbridge
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: guardian-nexus-data-pvc
+  namespace: security-nexus
+  labels:
+    app: guardian-nexus
+    component: keycloak
+    platform: starbridge
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: local-path

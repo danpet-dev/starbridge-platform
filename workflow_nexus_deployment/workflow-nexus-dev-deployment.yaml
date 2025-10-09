@@ -1,0 +1,190 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workflow-nexus
+  labels:
+    app: workflow-nexus
+    component: main
+    platform: starbridge
+    mode: developer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: workflow-nexus
+      component: main
+  template:
+    metadata:
+      labels:
+        app: workflow-nexus
+        component: main
+        platform: starbridge
+        mode: developer
+    spec:
+      containers:
+      - name: n8n
+        image: n8nio/n8n:latest
+        ports:
+        - containerPort: 5678
+          name: http
+          protocol: TCP
+        env:
+        # Basic Configuration
+        - name: N8N_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: workflow-nexus-config
+              key: N8N_HOST
+        - name: N8N_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: workflow-nexus-config
+              key: N8N_PORT
+        - name: N8N_PROTOCOL
+          valueFrom:
+            configMapKeyRef:
+              name: workflow-nexus-config
+              key: N8N_PROTOCOL
+        - name: WEBHOOK_URL
+          valueFrom:
+            configMapKeyRef:
+              name: workflow-nexus-config
+              key: WEBHOOK_URL
+        - name: GENERIC_TIMEZONE
+          valueFrom:
+            configMapKeyRef:
+              name: workflow-nexus-config
+              key: GENERIC_TIMEZONE
+        - name: N8N_LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: workflow-nexus-config
+              key: N8N_LOG_LEVEL
+        - name: N8N_USER_MANAGEMENT_DISABLED
+          valueFrom:
+            configMapKeyRef:
+              name: workflow-nexus-config
+              key: N8N_USER_MANAGEMENT_DISABLED
+        - name: N8N_SECURE_COOKIE
+          valueFrom:
+            configMapKeyRef:
+              name: workflow-nexus-config
+              key: N8N_SECURE_COOKIE
+        - name: N8N_AUTHENTICATION_TYPE
+          valueFrom:
+            configMapKeyRef:
+              name: workflow-nexus-config
+              key: N8N_AUTHENTICATION_TYPE
+        
+        # Database Configuration
+        - name: DB_TYPE
+          valueFrom:
+            configMapKeyRef:
+              name: workflow-nexus-config
+              key: DB_TYPE
+        - name: DB_POSTGRESDB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: workflow-nexus-config
+              key: DB_POSTGRESDB_HOST
+        - name: DB_POSTGRESDB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: workflow-nexus-config
+              key: DB_POSTGRESDB_PORT
+        - name: DB_POSTGRESDB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: workflow-nexus-secret
+              key: DB_POSTGRESDB_DATABASE
+        - name: DB_POSTGRESDB_USER
+          valueFrom:
+            secretKeyRef:
+              name: workflow-nexus-secret
+              key: DB_POSTGRESDB_USER
+        - name: DB_POSTGRESDB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: workflow-nexus-secret
+              key: DB_POSTGRESDB_PASSWORD
+        
+        # Encryption and Security
+        - name: N8N_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: workflow-nexus-secret
+              key: N8N_ENCRYPTION_KEY
+        
+        # Performance Settings
+        - name: EXECUTIONS_PROCESS
+          value: "main"
+        - name: EXECUTIONS_TIMEOUT
+          value: "3600"
+        - name: EXECUTIONS_TIMEOUT_MAX
+          value: "7200"
+        
+        volumeMounts:
+        - name: workflow-data
+          mountPath: /home/node/.n8n
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 5678
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 5678
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 5678
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+          
+      volumes:
+      - name: workflow-data
+        persistentVolumeClaim:
+          claimName: workflow-nexus-pvc
+      
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow-nexus-service
+  labels:
+    app: workflow-nexus
+    component: service
+    platform: starbridge
+    mode: developer
+spec:
+  selector:
+    app: workflow-nexus
+    component: main
+  ports:
+  - name: http
+    port: 5678
+    targetPort: 5678
+    protocol: TCP
+  type: ClusterIP

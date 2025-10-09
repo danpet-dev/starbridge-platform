@@ -1,0 +1,211 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neural-nexus-${MODEL_NAME}
+  labels:
+    app: neural-nexus
+    model: ${MODEL_NAME}
+    component: ai-model
+    platform: starbridge
+    mode: ${MODE}
+spec:
+  replicas: ${REPLICAS_COUNT}
+  selector:
+    matchLabels:
+      app: neural-nexus
+      model: ${MODEL_NAME}
+  template:
+    metadata:
+      labels:
+        app: neural-nexus
+        model: ${MODEL_NAME}
+        component: ai-model
+        platform: starbridge
+        mode: ${MODE}
+    spec:
+      initContainers:
+      - name: model-downloader
+        image: ollama/ollama:latest
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "🧠 Neural Nexus Model Deployment System"
+          echo "════════════════════════════════════════"
+          echo "Model: ${MODEL_FULL_NAME}"
+          echo "Type: ${MODEL_TYPE}"
+          echo "Namespace: ${NAMESPACE}"
+          echo "Mode: ${MODE}"
+          
+          # Model size estimates for user info
+          case "${MODEL_FULL_NAME}" in
+            *:2b*|*1.8b*) echo "📊 Estimated download size: ~1.4GB" ;;
+            *:3b*|*:3.8b*) echo "📊 Estimated download size: ~2.3GB" ;;
+            *:7b*) echo "📊 Estimated download size: ~4.1GB" ;;
+            *:8b*) echo "📊 Estimated download size: ~4.7GB" ;;
+            *:13b*) echo "📊 Estimated download size: ~7.3GB" ;;
+            *:34b*) echo "📊 Estimated download size: ~19GB" ;;
+            *:70b*) echo "📊 Estimated download size: ~39GB" ;;
+            *8x7b*) echo "📊 Estimated download size: ~26GB" ;;
+            *) echo "📊 Estimated download size: ~4-8GB" ;;
+          esac
+          
+          echo "⏱️ This may take 5-30 minutes depending on your internet speed"
+          echo "🚀 Starting Ollama server..."
+          
+          ollama serve &
+          OLLAMA_PID=$!
+          
+          # Wait for server to start with process check
+          for i in {1..30}; do
+            if pgrep -f "ollama serve" > /dev/null; then
+              echo "✅ Ollama server started"
+              break
+            fi
+            echo "⏳ Waiting for Ollama server... ($i/30)"
+            sleep 2
+          done
+          
+          # Additional wait for API readiness
+          sleep 5
+          
+          echo "📥 Starting download of ${MODEL_FULL_NAME}..."
+          echo "💡 Monitor progress: kubectl logs -n ${NAMESPACE} -l model=${MODEL_NAME} -f"
+          
+          # Create a background job to show periodic progress updates
+          (
+            sleep 10
+            while kill -0 $OLLAMA_PID 2>/dev/null; do
+              if [ -d "/root/.ollama/models" ]; then
+                CURRENT_SIZE=$(du -sh /root/.ollama/models 2>/dev/null | cut -f1 || echo "0B")
+                echo "📈 Downloaded so far: $CURRENT_SIZE"
+              fi
+              sleep 30
+            done
+          ) &
+          PROGRESS_PID=$!
+          
+          if ollama pull ${MODEL_FULL_NAME}; then
+            echo "✅ Model downloaded successfully!"
+            FINAL_SIZE=$(du -sh /root/.ollama/models 2>/dev/null | cut -f1 || echo "Unknown")
+            echo "💾 Total model storage: $FINAL_SIZE"
+          else
+            echo "❌ Model download failed"
+            exit 1
+          fi
+          
+          # Cleanup background processes
+          kill $PROGRESS_PID 2>/dev/null || true
+          kill $OLLAMA_PID
+          wait $OLLAMA_PID 2>/dev/null || true
+          
+          echo "🔍 Verifying model files..."
+          ls -la /root/.ollama/models/
+          echo "✅ Neural Nexus initialization complete!"
+        env:
+        - name: OLLAMA_HOST
+          value: "0.0.0.0"
+        - name: OLLAMA_MODELS
+          value: "/root/.ollama/models"
+        volumeMounts:
+        - name: ollama-models
+          mountPath: /root/.ollama/models
+        - name: ollama-cache
+          mountPath: /root/.ollama/cache
+        resources:
+          requests:
+            cpu: "${CPU_REQUEST}"
+            memory: "${MEMORY_REQUEST}Gi"
+          limits:
+            cpu: "${CPU_LIMIT}"
+            memory: "${MEMORY_LIMIT}Gi"
+      containers:
+      - name: neural-nexus
+        image: ollama/ollama:latest
+        ports:
+        - containerPort: 11434
+          name: ollama-api
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "🧠 Starting Neural Nexus AI Service"
+          echo "Model: ${MODEL_FULL_NAME}"
+          echo "Type: ${MODEL_TYPE}"
+          echo "API Port: 11434"
+          
+          # Start Ollama server
+          ollama serve &
+          OLLAMA_PID=$!
+          
+          # Wait for server to be ready
+          for i in {1..30}; do
+            if curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then
+              echo "✅ Neural Nexus API ready"
+              break
+            fi
+            echo "⏳ Waiting for Neural Nexus API... ($i/30)"
+            sleep 2
+          done
+          
+          # Keep container running
+          wait $OLLAMA_PID
+        env:
+        - name: OLLAMA_HOST
+          value: "0.0.0.0:11434"
+        - name: OLLAMA_MODELS
+          value: "/root/.ollama/models"
+        volumeMounts:
+        - name: ollama-models
+          mountPath: /root/.ollama/models
+        - name: ollama-cache
+          mountPath: /root/.ollama/cache
+        resources:
+          requests:
+            cpu: "${CPU_REQUEST}"
+            memory: "${MEMORY_REQUEST}Gi"
+          limits:
+            cpu: "${CPU_LIMIT}"
+            memory: "${MEMORY_LIMIT}Gi"
+        livenessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: ollama-models
+        persistentVolumeClaim:
+          claimName: neural-nexus-models-pvc
+      - name: ollama-cache
+        persistentVolumeClaim:
+          claimName: neural-nexus-cache-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neural-nexus-${MODEL_NAME}-service
+  labels:
+    app: neural-nexus
+    model: ${MODEL_NAME}
+    component: ai-model
+    platform: starbridge
+    mode: ${MODE}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 11434
+    targetPort: 11434
+    protocol: TCP
+    name: ollama-api
+  selector:
+    app: neural-nexus
+    model: ${MODEL_NAME}

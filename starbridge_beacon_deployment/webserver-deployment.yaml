@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: starbridge-webserver
+  namespace: starbridge-platform
+  labels:
+    app: starbridge-webserver
+    component: frontend
+    platform: starbridge
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: starbridge-webserver
+  template:
+    metadata:
+      labels:
+        app: starbridge-webserver
+        component: frontend
+        platform: starbridge
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25-alpine
+        ports:
+        - containerPort: 80
+          name: http
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: webserver-content
+          mountPath: /usr/share/nginx/html
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        env:
+        - name: TZ
+          value: "UTC"
+      volumes:
+      - name: webserver-content
+        persistentVolumeClaim:
+          claimName: starbridge-webserver-pvc
+      - name: nginx-config
+        configMap:
+          name: starbridge-webserver-config
+      restartPolicy: Always

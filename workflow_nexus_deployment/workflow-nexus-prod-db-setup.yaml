@@ -1,0 +1,78 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: workflow-nexus-db-setup-prod
+  labels:
+    app: workflow-nexus
+    component: db-setup
+    platform: starbridge
+    mode: production
+spec:
+  template:
+    metadata:
+      labels:
+        app: workflow-nexus
+        component: db-setup
+        platform: starbridge
+        mode: production
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: db-setup
+        image: postgres:15
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "Waiting for PostgreSQL to be ready..."
+          until pg_isready -h $PGHOST -p $PGPORT -U $PGUSER; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+          
+          echo "Creating database and user for Workflow Nexus Production..."
+          
+          # Create database if it doesn't exist
+          if ! psql -h $PGHOST -p $PGPORT -U $PGUSER -lqt | cut -d \| -f 1 | grep -qw $TARGET_DB; then
+            echo "Creating database: $TARGET_DB"
+            createdb -h $PGHOST -p $PGPORT -U $PGUSER $TARGET_DB
+          else
+            echo "Database $TARGET_DB already exists"
+          fi
+          
+          # Create user if it doesn't exist
+          psql -h $PGHOST -p $PGPORT -U $PGUSER -d $TARGET_DB << EOF
+          DO \$\$
+          BEGIN
+            IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$TARGET_USER') THEN
+              CREATE USER $TARGET_USER WITH PASSWORD '$TARGET_PASSWORD';
+              GRANT ALL PRIVILEGES ON DATABASE $TARGET_DB TO $TARGET_USER;
+              GRANT ALL ON SCHEMA public TO $TARGET_USER;
+              GRANT CREATE ON SCHEMA public TO $TARGET_USER;
+              RAISE NOTICE 'User $TARGET_USER created and granted privileges';
+            ELSE
+              RAISE NOTICE 'User $TARGET_USER already exists';
+            END IF;
+          END
+          \$\$;
+          EOF
+          
+          echo "Production database setup complete!"
+        env:
+        - name: PGHOST
+          value: "postgres-service.data-vault-prod.svc.cluster.local"
+        - name: PGPORT
+          value: "5432"
+        - name: PGUSER
+          value: "admin"
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: TARGET_DB
+          value: "workflow_nexus_prod"
+        - name: TARGET_USER
+          value: "workflow_nexus_prod_user"
+        - name: TARGET_PASSWORD
+          value: "starbridge123"

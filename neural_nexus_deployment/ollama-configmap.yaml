@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ollama-config
+  labels:
+    app: ollama
+    component: config
+data:
+  # Ollama server configuration
+  OLLAMA_HOST: "0.0.0.0"
+  OLLAMA_PORT: "11434"
+  OLLAMA_MODELS: "/root/.ollama/models"
+  OLLAMA_KEEP_ALIVE: "5m"
+  OLLAMA_MAX_LOADED_MODELS: "3"
+  OLLAMA_NUM_PARALLEL: "4"
+  OLLAMA_MAX_QUEUE: "512"
+  
+  # Performance tuning
+  OLLAMA_FLASH_ATTENTION: "1"
+  OLLAMA_NOHISTORY: "0"
+  OLLAMA_VERBOSE: "1"
+  
+  # Model download settings
+  OLLAMA_DOWNLOAD_TIMEOUT: "10m"
+  OLLAMA_CONCURRENT_DOWNLOADS: "2"

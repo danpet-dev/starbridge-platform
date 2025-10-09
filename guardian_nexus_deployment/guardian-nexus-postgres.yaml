@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guardian-nexus-postgres
+  namespace: security-nexus
+  labels:
+    app: guardian-nexus
+    component: database
+    platform: starbridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: guardian-nexus
+      component: database
+  template:
+    metadata:
+      labels:
+        app: guardian-nexus
+        component: database
+        platform: starbridge
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: guardian-nexus-secrets
+              key: postgres-database
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: guardian-nexus-secrets
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: guardian-nexus-secrets
+              key: postgres-password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf
+        - name: postgres-config
+          mountPath: /etc/postgresql/pg_hba.conf
+          subPath: pg_hba.conf
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+            - -d
+            - $(POSTGRES_DB)
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+            - -d
+            - $(POSTGRES_DB)
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: guardian-nexus-db-pvc
+      - name: postgres-config
+        configMap:
+          name: guardian-nexus-postgres-config
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guardian-nexus-postgres-service
+  namespace: security-nexus
+  labels:
+    app: guardian-nexus
+    component: database
+    platform: starbridge
+spec:
+  selector:
+    app: guardian-nexus
+    component: database
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+  type: ClusterIP

@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guardian-nexus-keycloak
+  namespace: security-nexus
+  labels:
+    app: guardian-nexus
+    component: keycloak
+    platform: starbridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: guardian-nexus
+      component: keycloak
+  template:
+    metadata:
+      labels:
+        app: guardian-nexus
+        component: keycloak
+        platform: starbridge
+    spec:
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:15-alpine
+        command:
+        - sh
+        - -c
+        - |
+          until pg_isready -h guardian-nexus-postgres-service -p 5432 -U guardian_nexus; do
+            echo "⏳ Waiting for Guardian Nexus PostgreSQL...";
+            sleep 2;
+          done;
+          echo "✅ PostgreSQL is ready!"
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: guardian-nexus-secrets
+              key: postgres-password
+      containers:
+      - name: keycloak
+        image: quay.io/keycloak/keycloak:22.0
+        args:
+        - start
+        - --hostname-strict=false
+        - --hostname-strict-https=false
+        - --http-enabled=true
+        - --import-realm
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: KC_DB
+          value: postgres
+        - name: KC_DB_URL
+          value: jdbc:postgresql://guardian-nexus-postgres-service:5432/guardian_db
+        - name: KC_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: guardian-nexus-secrets
+              key: postgres-user
+        - name: KC_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: guardian-nexus-secrets
+              key: postgres-password
+        - name: KEYCLOAK_ADMIN
+          valueFrom:
+            secretKeyRef:
+              name: guardian-nexus-secrets
+              key: keycloak-admin-user
+        - name: KEYCLOAK_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: guardian-nexus-secrets
+              key: keycloak-admin-password
+        - name: KC_HEALTH_ENABLED
+          value: "true"
+        - name: KC_METRICS_ENABLED
+          value: "true"
+        - name: KC_LOG_LEVEL
+          value: INFO
+        volumeMounts:
+        - name: keycloak-data
+          mountPath: /opt/keycloak/data
+        - name: realm-config
+          mountPath: /opt/keycloak/data/import/realm-config.json
+          subPath: realm-config.json
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /health/started
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+      volumes:
+      - name: keycloak-data
+        persistentVolumeClaim:
+          claimName: guardian-nexus-data-pvc
+      - name: realm-config
+        configMap:
+          name: guardian-nexus-keycloak-config
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guardian-nexus-service
+  namespace: security-nexus
+  labels:
+    app: guardian-nexus
+    component: keycloak
+    platform: starbridge
+spec:
+  selector:
+    app: guardian-nexus
+    component: keycloak
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP

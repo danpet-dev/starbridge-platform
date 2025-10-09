@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: guardian-nexus-keycloak-config
+  namespace: security-nexus
+  labels:
+    app: guardian-nexus
+    component: keycloak
+    platform: starbridge
+data:
+  realm-config.json: |
+    {
+      "realm": "starbridge-platform",
+      "displayName": "Starbridge Platform Security Realm",
+      "displayNameHtml": "🌟 <strong>Starbridge Platform</strong> 🛡️",
+      "enabled": true,
+      "sslRequired": "external",
+      "registrationAllowed": false,
+      "loginWithEmailAllowed": true,
+      "duplicateEmailsAllowed": false,
+      "resetPasswordAllowed": true,
+      "editUsernameAllowed": false,
+      "bruteForceProtected": true,
+      "permanentLockout": false,
+      "maxFailureWaitSeconds": 900,
+      "minimumQuickLoginWaitSeconds": 60,
+      "waitIncrementSeconds": 60,
+      "quickLoginCheckMilliSeconds": 1000,
+      "maxDeltaTimeSeconds": 43200,
+      "failureFactor": 30,
+      "defaultRoles": ["offline_access", "uma_authorization"],
+      "requiredCredentials": ["password"],
+      "loginTheme": "starbridge",
+      "adminTheme": "starbridge",
+      "accountTheme": "starbridge",
+      "emailTheme": "starbridge",
+      "clients": [
+        {
+          "clientId": "workflow-nexus",
+          "name": "Workflow Nexus (n8n)",
+          "description": "n8n Workflow Automation Platform",
+          "enabled": true,
+          "clientAuthenticatorType": "client-secret",
+          "redirectUris": ["*"],
+          "webOrigins": ["*"],
+          "protocol": "openid-connect",
+          "publicClient": false,
+          "standardFlowEnabled": true,
+          "implicitFlowEnabled": false,
+          "directAccessGrantsEnabled": true,
+          "serviceAccountsEnabled": true
+        },
+        {
+          "clientId": "starbridge-beacon",
+          "name": "Starbridge Beacon (Web Interface)",
+          "description": "Starbridge Platform Web Interface",
+          "enabled": true,
+          "clientAuthenticatorType": "client-secret",
+          "redirectUris": ["*"],
+          "webOrigins": ["*"],
+          "protocol": "openid-connect",
+          "publicClient": false,
+          "standardFlowEnabled": true,
+          "implicitFlowEnabled": false,
+          "directAccessGrantsEnabled": true
+        }
+      ],
+      "roles": {
+        "realm": [
+          {
+            "name": "fleet-admiral",
+            "description": "Fleet Admiral - Full platform access",
+            "composite": false
+          },
+          {
+            "name": "engineering-corps",
+            "description": "Engineering Corps - Technical administration",
+            "composite": false
+          },
+          {
+            "name": "workflow-operator",
+            "description": "Workflow Operator - n8n workflow management",
+            "composite": false
+          },
+          {
+            "name": "platform-user",
+            "description": "Platform User - Basic access",
+            "composite": false
+          }
+        ]
+      },
+      "users": [
+        {
+          "username": "admiral-keldamar",
+          "firstName": "Fleet Admiral",
+          "lastName": "Keldamar",
+          "email": "admiral.keldamar@starbridge.platform",
+          "enabled": true,
+          "emailVerified": true,
+          "credentials": [
+            {
+              "type": "password",
+              "value": "starbridge-command-2025",
+              "temporary": true
+            }
+          ],
+          "realmRoles": ["fleet-admiral", "engineering-corps", "workflow-operator", "platform-user"]
+        },
+        {
+          "username": "admiral-copilot",
+          "firstName": "Admiral E.C.",
+          "lastName": "Copilot",
+          "email": "admiral.copilot@starbridge.platform",
+          "enabled": true,
+          "emailVerified": true,
+          "credentials": [
+            {
+              "type": "password",
+              "value": "engineering-corps-2025",
+              "temporary": true
+            }
+          ],
+          "realmRoles": ["engineering-corps", "workflow-operator", "platform-user"]
+        }
+      ]
+    }

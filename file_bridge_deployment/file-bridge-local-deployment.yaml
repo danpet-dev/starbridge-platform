@@ -1,0 +1,184 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: file-bridge-local-BRIDGE_NAME
+  namespace: file-bridges
+  labels:
+    app: file-bridge-local
+    bridge-name: BRIDGE_NAME
+    component: deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: file-bridge-local
+      bridge-name: BRIDGE_NAME
+  template:
+    metadata:
+      labels:
+        app: file-bridge-local
+        bridge-name: BRIDGE_NAME
+        component: pod
+    spec:
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+        fsGroup: 0
+      containers:
+      # SFTP server with direct volume mount
+      - name: sftp-server
+        image: alpine:3.18
+        ports:
+        - containerPort: CONTAINER_PORT
+          name: sftp
+          protocol: TCP
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          set -e
+          echo "🚀 Starting Local File Bridge: $(BRIDGE_NAME)"
+          
+          # Install OpenSSH server
+          apk add --no-cache openssh-server openssh-keygen openssl
+          
+          # Generate SSH host keys
+          ssh-keygen -t rsa -b 2048 -f /etc/ssh/ssh_host_rsa_key -N ""
+          ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -N ""
+          ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N ""
+          
+          # Create SFTP user
+          adduser -D -s /sbin/nologin bridge-user
+          echo "bridge-user:$(openssl rand -base64 32)" | chpasswd
+          
+          # Setup SSH directory and keys
+          mkdir -p /home/bridge-user/.ssh
+          cp /etc/ssh-keys/id_rsa.pub /home/bridge-user/.ssh/authorized_keys
+          chown -R bridge-user:bridge-user /home/bridge-user/.ssh
+          chmod 700 /home/bridge-user/.ssh
+          chmod 600 /home/bridge-user/.ssh/authorized_keys
+          
+          # Create SFTP configuration (simplified for local version)
+          cat > /etc/ssh/sshd_config << 'EOF'
+          Port CONTAINER_PORT
+          HostKey /etc/ssh/ssh_host_rsa_key
+          HostKey /etc/ssh/ssh_host_ecdsa_key
+          HostKey /etc/ssh/ssh_host_ed25519_key
+          
+          # Security settings
+          PermitRootLogin no
+          PasswordAuthentication no
+          PubkeyAuthentication yes
+          AuthorizedKeysFile .ssh/authorized_keys
+          
+          # SFTP configuration
+          Subsystem sftp internal-sftp
+          Match User bridge-user
+              ForceCommand internal-sftp
+              AllowTcpForwarding no
+              X11Forwarding no
+          EOF
+          
+          # Simple setup - no chroot needed for local access
+          chown bridge-user:bridge-user /data
+          
+          # Apply permissions based on access mode
+          case "$(ACCESS_MODE)" in
+            "read-only")
+              echo "🔒 Setting read-only permissions..."
+              find /data -type d -exec chmod 555 {} \;
+              find /data -type f -exec chmod 444 {} \;
+              ;;
+            "write-only")
+              echo "📝 Setting write-only permissions..."
+              chmod 733 /data
+              ;;
+            "append-only")
+              echo "📜 Setting append-only permissions..."
+              chmod 755 /data
+              ;;
+            "read-write"|*)
+              echo "🔓 Setting read-write permissions..."
+              chmod 755 /data
+              ;;
+          esac
+          
+          echo "✅ Local file bridge ready!"
+          echo "📁 Data directory: /data (mounted to HOST_PATH)"
+          echo "🔌 SFTP Port: CONTAINER_PORT"
+          echo "🔒 Access Mode: ACCESS_MODE"
+          
+          # Start SSHD
+          /usr/sbin/sshd -D -e
+        env:
+        - name: BRIDGE_NAME
+          value: "BRIDGE_NAME"
+        - name: SFTP_PORT
+          value: "SFTP_PORT_VALUE"
+        - name: ACCESS_MODE
+          value: "ACCESS_MODE_VALUE"
+        - name: HOST_PATH
+          value: "HOST_PATH_VALUE"
+        volumeMounts:
+        - name: ssh-keys
+          mountPath: /etc/ssh-keys
+          readOnly: true
+        - name: host-data
+          mountPath: /data
+        securityContext:
+          privileged: true
+          runAsUser: 0
+        livenessProbe:
+          tcpSocket:
+            port: CONTAINER_PORT
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          tcpSocket:
+            port: CONTAINER_PORT
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+      
+      volumes:
+      - name: ssh-keys
+        secret:
+          secretName: file-bridge-ssh-BRIDGE_NAME
+          defaultMode: 0600
+      - name: host-data
+        hostPath:
+          path: HOST_PATH_VALUE
+          type: DirectoryOrCreate
+      
+      # Schedule on specific node if needed
+      nodeSelector:
+        kubernetes.io/hostname: NODE_NAME
+      
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: file-bridge-local-BRIDGE_NAME
+  namespace: file-bridges
+  labels:
+    app: file-bridge-local
+    bridge-name: BRIDGE_NAME
+    component: service
+spec:
+  type: ClusterIP
+  selector:
+    app: file-bridge-local
+    bridge-name: BRIDGE_NAME
+  ports:
+  - name: sftp
+    port: SERVICE_PORT
+    targetPort: CONTAINER_PORT
+    protocol: TCP

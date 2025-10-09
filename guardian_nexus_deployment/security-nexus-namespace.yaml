@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: security-nexus
+  labels:
+    app: guardian-nexus
+    component: security
+    platform: starbridge
+    security-level: high
+  annotations:
+    starbridge.platform/security-zone: "restricted"
+    starbridge.platform/description: "Guardian Nexus - Central Security Command"

@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: neural-nexus-models-pvc
+  labels:
+    app: neural-nexus
+    component: storage
+    platform: starbridge
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: local-path  # Rancher Desktop default
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: neural-nexus-cache-pvc
+  labels:
+    app: neural-nexus
+    component: cache
+    platform: starbridge
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: local-path
