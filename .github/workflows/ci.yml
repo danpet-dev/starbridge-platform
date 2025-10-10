@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
 jobs:
   validate-manifests:
     name: 🧪 Validate Kubernetes Manifests
@@ -46,6 +51,10 @@ jobs:
   security-scan:
     name: 🛡️ Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
     
     steps:
     - name: 📥 Checkout Code
@@ -67,6 +76,8 @@ jobs:
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+        category: 'trivy'
+        wait-for-processing: true
 
   documentation:
     name: 📚 Documentation Check
