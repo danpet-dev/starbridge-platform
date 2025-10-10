@@ -1,0 +1,81 @@
+# 🛡️ Security - SSH Keys and Private Data
+id_rsa*
+*.pem
+*.key
+*_rsa*
+ssh_host_*
+.ssh/
+*.ppk
+
+# 🗂️ IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 🐳 Docker
+.dockerignore
+docker-compose.override.yml
+*.log
+
+# 🔧 OS Generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 📦 Dependencies
+node_modules/
+vendor/
+.npm
+.yarn
+
+# 🧪 Testing
+coverage/
+*.coverage
+.nyc_output
+.pytest_cache
+
+# 🏗️ Build artifacts
+dist/
+build/
+target/
+*.jar
+*.war
+*.ear
+
+# 📝 Logs and temporary files
+*.log
+*.tmp
+*.temp
+logs/
+tmp/
+
+# 🔐 Environment and secrets
+.env*
+!.env.example
+secrets/
+config/local.yaml
+config/local.yml
+
+# ☸️ Kubernetes sensitive files
+*-secret.yaml
+*secret*.yaml
+kubeconfig*
+.kube/
+
+# 🗃️ Database
+*.db
+*.sqlite
+*.sqlite3
+db.json
+data/
+
+# 🎯 HashiCorp Vault
+vault-data/
+.vault-token
+unseal-keys.txt

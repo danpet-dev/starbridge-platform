@@ -1,13 +1,61 @@
 # 🔑 SSH Key Templates
 
-## ⚠️ Important Notice
+## ⚠️ SECURITY WARNING
 
-**These SSH keys are EXAMPLES and TEMPLATES only!**
+**SSH keys have been REMOVED from Git repository for security reasons!**
 
-- **DO NOT use these keys in production**
-- **These are for demonstration and testing purposes**
-- **Generate fresh SSH keys for each deployment**
-- **Use Vault Nexus for production secret management**
+- **NEVER commit real SSH keys to Git!**
+- **Use templates and generate fresh keys for each environment**
+- **Integrate with HashiCorp Vault for production deployments**
+
+## 📁 Directory Structure Template
+```
+environment-name/
+├── id_rsa.template      # Private key template (EXAMPLE ONLY)
+├── id_rsa.pub.template  # Public key template (EXAMPLE ONLY)  
+├── ssh_config           # SSH client configuration
+└── deployment_instructions.txt
+```
+
+## 🔧 Setup Instructions
+
+1. **Copy template directory:**
+   ```bash
+   cp -r examples/template-name/ your-environment/
+   ```
+
+2. **Generate fresh SSH keys:**
+   ```bash
+   ssh-keygen -t rsa -b 4096 -f your-environment/id_rsa -C "your-email@domain.com"
+   ```
+
+3. **Never commit real keys:**
+   ```bash
+   # Keys are automatically ignored by .gitignore
+   echo "id_rsa*" >> .gitignore
+   ```
+
+## 🛡️ Security Best Practices
+
+- ✅ Use unique keys per environment
+- ✅ Rotate keys regularly  
+- ✅ Use SSH agent forwarding when possible
+- ✅ Implement proper key management with Vault
+- ❌ Never commit private keys to version control
+- ❌ Never share keys via insecure channels
+
+## 🔐 Integration with HashiCorp Vault
+
+For production deployments:
+
+```bash
+# Store SSH key in Vault
+vault kv put secret/ssh-keys/environment-name private_key=@id_rsa public_key=@id_rsa.pub
+
+# Retrieve in deployment
+vault kv get -field=private_key secret/ssh-keys/environment-name > /tmp/id_rsa
+chmod 600 /tmp/id_rsa
+```
 
 ## 🔐 Production Key Management
 

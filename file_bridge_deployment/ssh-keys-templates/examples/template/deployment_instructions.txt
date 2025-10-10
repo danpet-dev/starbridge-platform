@@ -1,0 +1,183 @@
+# 🚀 SSH Key Deployment Instructions
+
+## 📋 Environment: Template
+**Created**: [Date]  
+**Purpose**: Template for SSH key deployment setup
+
+## 🔑 SSH Key Generation
+
+### 1. Generate Fresh SSH Keys
+```bash
+# Generate RSA 4096-bit key pair
+ssh-keygen -t rsa -b 4096 -f id_rsa -C "deployment@starbridge-platform"
+
+# Set proper permissions
+chmod 600 id_rsa
+chmod 644 id_rsa.pub
+```
+
+### 2. Alternative: Ed25519 Keys (Recommended)
+```bash
+# Generate Ed25519 key (more secure, better performance)
+ssh-keygen -t ed25519 -f id_ed25519 -C "deployment@starbridge-platform"
+```
+
+## 🛡️ Security Setup
+
+### 1. Server Configuration
+```bash
+# Copy public key to target server
+ssh-copy-id -i id_rsa.pub user@server.example.com
+
+# Manual method
+cat id_rsa.pub | ssh user@server.example.com "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+```
+
+### 2. Client Configuration
+```bash
+# Test connection
+ssh -i id_rsa -F ssh_config your-server-alias
+
+# Add to SSH agent
+ssh-add id_rsa
+```
+
+## 🔐 HashiCorp Vault Integration
+
+### 1. Store Keys in Vault
+```bash
+# Store SSH private key
+vault kv put secret/ssh-keys/template-env \
+    private_key=@id_rsa \
+    public_key=@id_rsa.pub \
+    config=@ssh_config
+
+# Store with metadata
+vault kv put secret/ssh-keys/template-env \
+    private_key=@id_rsa \
+    public_key=@id_rsa.pub \
+    created_date="$(date -Iseconds)" \
+    created_by="$USER" \
+    rotation_due="$(date -d '+90 days' -Iseconds)"
+```
+
+### 2. Retrieve from Vault
+```bash
+# Get private key
+vault kv get -field=private_key secret/ssh-keys/template-env > /tmp/id_rsa
+chmod 600 /tmp/id_rsa
+
+# Get public key  
+vault kv get -field=public_key secret/ssh-keys/template-env > /tmp/id_rsa.pub
+```
+
+## 🚀 Kubernetes Deployment
+
+### 1. Create Secret from Files
+```bash
+kubectl create secret generic ssh-keys-template \
+    --from-file=id_rsa=./id_rsa \
+    --from-file=id_rsa.pub=./id_rsa.pub \
+    --from-file=ssh_config=./ssh_config \
+    -n starbridge-platform
+```
+
+### 2. Mount in Pod
+```yaml
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: file-bridge
+    volumeMounts:
+    - name: ssh-keys
+      mountPath: /app/.ssh
+      readOnly: true
+  volumes:
+  - name: ssh-keys
+    secret:
+      secretName: ssh-keys-template
+      defaultMode: 0600
+```
+
+## 🔄 Key Rotation
+
+### 1. Generate New Keys
+```bash
+# Generate new key pair
+ssh-keygen -t rsa -b 4096 -f id_rsa.new -C "deployment@starbridge-platform-$(date +%Y%m%d)"
+```
+
+### 2. Deploy New Key
+```bash
+# Add new public key to server
+ssh-copy-id -i id_rsa.new.pub user@server.example.com
+
+# Test with new key
+ssh -i id_rsa.new user@server.example.com
+
+# Update Vault with new key
+vault kv put secret/ssh-keys/template-env private_key=@id_rsa.new
+```
+
+### 3. Remove Old Key
+```bash
+# Remove old public key from server authorized_keys
+ssh user@server.example.com "sed -i '/old-key-comment/d' ~/.ssh/authorized_keys"
+```
+
+## 📊 Monitoring & Alerts
+
+### 1. Key Expiration Monitoring
+```bash
+# Check key age
+stat -c %Y id_rsa | xargs -I {} date -d @{} +%Y-%m-%d
+
+# Alert if key older than 90 days
+find . -name "id_rsa" -mtime +90 -exec echo "Key rotation required: {}" \;
+```
+
+### 2. Access Logging
+```bash
+# Monitor SSH access logs
+tail -f /var/log/auth.log | grep "Accepted publickey"
+```
+
+## 🆘 Emergency Procedures
+
+### 1. Key Compromise
+```bash
+# Immediately revoke compromised key
+ssh user@server.example.com "sed -i '/compromised-key/d' ~/.ssh/authorized_keys"
+
+# Generate emergency replacement
+ssh-keygen -t ed25519 -f emergency_key -C "emergency@starbridge-platform"
+
+# Deploy emergency key
+ssh-copy-id -i emergency_key.pub user@server.example.com
+```
+
+### 2. Lockout Recovery
+```bash
+# Use alternative access method (console, bastion host, etc.)
+# Deploy new key via out-of-band mechanism
+# Update deployment configurations
+```
+
+## ✅ Checklist
+
+- [ ] Fresh SSH keys generated
+- [ ] Keys deployed to target servers
+- [ ] SSH client configuration tested
+- [ ] Keys stored securely in Vault
+- [ ] Kubernetes secrets updated
+- [ ] Old keys removed and rotated
+- [ ] Access logging configured
+- [ ] Emergency procedures documented
+
+---
+**Security Reminder**: 
+- Never commit real SSH keys to Git
+- Rotate keys every 90 days
+- Use unique keys per environment
+- Monitor key usage and access

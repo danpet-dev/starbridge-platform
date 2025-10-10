@@ -1,0 +1,41 @@
+# SSH Configuration Template
+
+Host your-server-alias
+    HostName your-server.example.com
+    User your-username
+    Port 22
+    IdentityFile ./id_rsa
+    IdentitiesOnly yes
+    StrictHostKeyChecking ask
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+
+# Example SFTP/File Bridge Configuration
+Host file-bridge-server
+    HostName file-bridge.starbridge-platform.local
+    User bridge-user
+    Port 2222
+    IdentityFile ./id_rsa
+    IdentitiesOnly yes
+    Compression yes
+    
+# Security-hardened configuration
+Host secure-server
+    HostName secure.example.com
+    User deploy-user
+    Port 22
+    IdentityFile ./id_rsa
+    IdentitiesOnly yes
+    StrictHostKeyChecking yes
+    UserKnownHostsFile ~/.ssh/known_hosts
+    Protocol 2
+    Ciphers aes256-gcm@openssh.com,chacha20-poly1305@openssh.com
+    MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com
+    KexAlgorithms curve25519-sha256@libssh.org,diffie-hellman-group16-sha512
+
+# 🔐 Security Notes:
+# - Always use unique SSH keys per environment
+# - Rotate keys regularly (quarterly recommended)
+# - Use SSH agent forwarding when possible
+# - Never share private keys via insecure channels
+# - Consider using SSH certificates for large deployments
