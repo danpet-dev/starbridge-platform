@@ -1,61 +1,93 @@
 # 🔑 SSH Key Templates
 
-## ⚠️ SECURITY WARNING
+## ⚠️ SECURITY NOTICE
 
 **SSH keys have been REMOVED from Git repository for security reasons!**
 
 - **NEVER commit real SSH keys to Git!**
-- **Use templates and generate fresh keys for each environment**
-- **Integrate with HashiCorp Vault for production deployments**
+- **SSH keys are generated dynamically by the File Bridge system**
+- **Use HashiCorp Vault for production secret management**
 
-## 📁 Directory Structure Template
-```
-environment-name/
-├── id_rsa.template      # Private key template (EXAMPLE ONLY)
-├── id_rsa.pub.template  # Public key template (EXAMPLE ONLY)  
-├── ssh_config           # SSH client configuration
+## � How File Bridge SSH Keys Work
+
+File Bridge uses **automated SSH key generation** - no templates needed!
+
+### 1. Key Generation
+```bash
+# Generate keys for a new bridge
+./ssh-key-manager.sh generate my-bridge
+
+# Keys are created in: ssh-keys/my-bridge/
+├── id_rsa              # Private key (auto-generated)
+├── id_rsa.pub          # Public key (auto-generated)
+├── ssh_config          # SSH client config
 └── deployment_instructions.txt
 ```
 
-## 🔧 Setup Instructions
+### 2. Kubernetes Integration
+```bash
+# Create secret from generated keys
+kubectl create secret generic ssh-keys-my-bridge \
+    --from-file=id_rsa=./ssh-keys/my-bridge/id_rsa \
+    --from-file=id_rsa.pub=./ssh-keys/my-bridge/id_rsa.pub \
+    --from-file=ssh_config=./ssh-keys/my-bridge/ssh_config
+```
 
-1. **Copy template directory:**
-   ```bash
-   cp -r examples/template-name/ your-environment/
-   ```
+### 3. Deployment
+The File Bridge deployment automatically:
+- Mounts SSH keys from Kubernetes secrets
+- Sets proper permissions (600 for private, 644 for public)
+- Generates SSH host keys for SFTP server
+- Configures SSH client for remote connections
 
-2. **Generate fresh SSH keys:**
-   ```bash
-   ssh-keygen -t rsa -b 4096 -f your-environment/id_rsa -C "your-email@domain.com"
-   ```
+## 🔧 Key Management Commands
 
-3. **Never commit real keys:**
-   ```bash
-   # Keys are automatically ignored by .gitignore
-   echo "id_rsa*" >> .gitignore
-   ```
+```bash
+# Generate new bridge keys
+./ssh-key-manager.sh generate bridge-name
+
+# List all bridges
+./ssh-key-manager.sh list
+
+# Show bridge details
+./ssh-key-manager.sh show bridge-name
+
+# Rotate keys (regenerate)
+./ssh-key-manager.sh regenerate bridge-name
+
+# Clean up bridge
+./ssh-key-manager.sh cleanup bridge-name
+```
 
 ## 🛡️ Security Best Practices
 
-- ✅ Use unique keys per environment
-- ✅ Rotate keys regularly  
-- ✅ Use SSH agent forwarding when possible
-- ✅ Implement proper key management with Vault
-- ❌ Never commit private keys to version control
-- ❌ Never share keys via insecure channels
+- ✅ Keys are generated per bridge (unique isolation)
+- ✅ Keys are managed by dedicated script
+- ✅ Keys are stored as Kubernetes secrets
+- ✅ Keys are automatically ignored by .gitignore
+- ✅ Integration with HashiCorp Vault available
 
-## 🔐 Integration with HashiCorp Vault
+## 🔐 HashiCorp Vault Integration
 
-For production deployments:
+For production deployments, integrate with Vault:
 
 ```bash
-# Store SSH key in Vault
-vault kv put secret/ssh-keys/environment-name private_key=@id_rsa public_key=@id_rsa.pub
+# Store generated keys in Vault
+vault kv put secret/ssh-keys/my-bridge \
+    private_key=@ssh-keys/my-bridge/id_rsa \
+    public_key=@ssh-keys/my-bridge/id_rsa.pub
 
-# Retrieve in deployment
-vault kv get -field=private_key secret/ssh-keys/environment-name > /tmp/id_rsa
-chmod 600 /tmp/id_rsa
+# Retrieve keys for deployment
+vault kv get -field=private_key secret/ssh-keys/my-bridge > /tmp/id_rsa
 ```
+
+## 📋 Conclusion
+
+**No templates needed!** 
+- File Bridge generates keys automatically
+- Each bridge gets unique SSH keys
+- Vault integration for enterprise deployments
+- Git repository stays clean and secure
 
 ## 🔐 Production Key Management
 
