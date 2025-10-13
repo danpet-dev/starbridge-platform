@@ -33,33 +33,68 @@
 - `kubectl` configured
 - `make` installed
 
-### **Deploy Your First File Bridge**
+### **🚀 Ultra-Quick Start (30 seconds to running platform)**
 ```bash
-# Create a local file bridge
-make new-local-file-bridge BRIDGE_NAME=input BRIDGE_PATH=/home/user/data
+# 1. Deploy complete development environment
+make fresh-dev-auto
 
-# Deploy SSH keys to n8n
-make n8n-deploy-ssh-keys BRIDGE_NAME=input
+# 2. Start n8n in background
+make start-n8n-port-forward
 
-# Get credentials for n8n
-make n8n-get-private-key BRIDGE_NAME=input
+# 3. Access n8n
+open http://localhost:5678
 ```
 
-### **Deploy Complete Platform**
+### **📂 File Operations Made Easy**
 ```bash
-# Deploy PostgreSQL database
-make deploy-postgres
+# Create bridge and copy files in one workflow
+make new-local-file-bridge BRIDGE_NAME=data BRIDGE_PATH=~/mydata
+./bridge-copy.sh to data ~/important-file.csv
+./bridge-copy.sh ls data  # Verify files are there
+```
 
-# Deploy n8n workflows
-make deploy-n8n
+### **🚀 One-Command Deployment**
+```bash
+# Complete fresh development deployment (automated)
+make fresh-dev-auto
 
-# Deploy AI models
-make new-ollama-pod MODEL=llama3.1
+# Interactive deployment with port forwarding
+make fresh-dev-deployment
 
-# Optional: Deploy Vault for enhanced security
-make deploy-vault-nexus
-make vault-init
-make vault-setup
+# Manual deployment steps
+make deploy-dev
+make start-n8n-port-forward
+make start-postgres-port-forward
+```
+
+### **📂 File Bridge Copy Operations**
+```bash
+# Copy files to bridge (script method)
+./bridge-copy.sh to starbridge-transfer ~/myfile.txt
+./bridge-copy.sh to starbridge-transfer ~/myfolder/ /data/input/
+
+# Copy files from bridge
+./bridge-copy.sh from starbridge-transfer /data/output.txt ~/downloads/
+
+# List bridge contents
+./bridge-copy.sh ls starbridge-transfer
+
+# Copy via Makefile
+make copy-to-bridge BRIDGE_NAME=starbridge-transfer SOURCE=~/myfile.txt
+make ls-bridge BRIDGE_NAME=starbridge-transfer
+```
+
+### **🔗 Background Port-Forward Management**
+```bash
+# Start services in background
+make start-n8n-port-forward          # n8n at http://localhost:5678
+make start-postgres-port-forward     # PostgreSQL at localhost:5432
+make start-vault-port-forward        # Vault at http://localhost:8200
+
+# Management commands
+make list-port-forwards              # Show all active port forwards
+make stop-port-forward PORT=5678     # Stop specific port forward
+make stop-all-port-forwards          # Stop all port forwards
 ```
 
 ---
@@ -68,29 +103,55 @@ make vault-setup
 
 | Component | Purpose | Status |
 |-----------|---------|--------|
-| **File Bridges** | Secure SFTP file access | ✅ Production Ready |
-| **n8n Integration** | Workflow automation | ✅ Production Ready |
-| **PostgreSQL** | Database services | ✅ Production Ready |
-| **Ollama AI** | LLM model deployment | ✅ Production Ready |
-| **SSH Management** | Security automation | ✅ Production Ready |
-| **Vault Integration** | Enterprise secret management | ✅ Production Ready |
+| **File Bridges** | Secure SFTP file access + Copy operations | ✅ Production Ready |
+| **Workflow Nexus (n8n)** | Workflow automation with background port-forward | ✅ Production Ready |
+| **Stellar Core Database** | PostgreSQL services (cross-namespace) | ✅ Production Ready |
+| **Neural Nexus (Ollama)** | LLM model deployment | ✅ Production Ready |
+| **Guardian Nexus (Keycloak)** | OIDC authentication | ✅ Production Ready |
+| **Vault Nexus (HashiCorp)** | Enterprise secret management | ✅ Production Ready |
+| **Port-Forward Management** | Background service access | 🆕 **NEW** Production Ready |
+| **File Copy System** | Host ↔ Bridge file operations | 🆕 **NEW** Production Ready |
+| **One-Command Deployment** | Automated platform setup | 🆕 **NEW** Production Ready |
 
 ---
 
 ## 🎮 Management Commands
 
-### **📁 File Bridge Operations**
+### **� Platform Deployment**
 ```bash
-make list-file-bridges                    # List all bridges
-make new-file-bridge BRIDGE_NAME=remote   # Create remote bridge
-make test-file-bridge BRIDGE_NAME=input   # Test connectivity
+make fresh-dev-auto                       # Complete automated deployment
+make fresh-dev-deployment                 # Interactive deployment + port forward
+make deploy-dev                           # Deploy development environment
+make deploy-prod                          # Deploy production environment
+make nuclear-clean                        # Complete platform reset
 ```
 
-### **🤖 n8n Operations**
+### **🔗 Port-Forward Management**
 ```bash
-make deploy-n8n                          # Deploy n8n platform
-make n8n-list-ssh-keys                    # List SSH credentials
-make port-forward                         # Access n8n UI
+make start-n8n-port-forward              # Start n8n in background (port 5678)
+make start-postgres-port-forward         # Start PostgreSQL in background (port 5432)
+make start-vault-port-forward            # Start Vault in background (port 8200)
+make list-port-forwards                  # Show all active port forwards
+make stop-port-forward PORT=5678         # Stop specific port forward
+make stop-all-port-forwards              # Stop all port forwards
+```
+
+### **📂 File Bridge Operations**
+```bash
+make list-file-bridges                    # List all bridges
+make new-local-file-bridge BRIDGE_NAME=data BRIDGE_PATH=~/data # Create local bridge
+make copy-to-bridge BRIDGE_NAME=data SOURCE=~/file.txt        # Copy to bridge
+make copy-from-bridge BRIDGE_NAME=data SOURCE=/data/output.txt # Copy from bridge
+make ls-bridge BRIDGE_NAME=data          # List bridge contents
+./bridge-copy.sh list                    # Show available bridges (script)
+./bridge-copy.sh to data ~/myfile.txt    # Copy via script (recommended)
+```
+
+### **🤖 Workflow Nexus (n8n) Operations**
+```bash
+make workflow-nexus-port-forward         # Direct n8n port forward
+make deploy-workflow-nexus-dev           # Deploy n8n development
+make logs-workflow-nexus                 # View n8n logs
 ```
 
 ### **🔐 Vault Secret Management**
@@ -100,6 +161,8 @@ make vault-init                           # Initialize Vault
 make vault-setup                          # Configure policies
 make vault-status                         # Check Vault health
 ```
+
+### **🧠 Neural Nexus (AI) Operations**
 ```bash
 make show-model-catalog                   # Available models
 make new-ollama-pod MODEL=llava          # Deploy vision model
@@ -110,24 +173,41 @@ make list-ollama-pods                     # List deployments
 
 ## 🔗 Integration Example: n8n + File Bridge
 
-### **1. Deploy File Bridge**
+### **1. Quick Start - Complete Setup**
 ```bash
-make new-local-file-bridge BRIDGE_NAME=workflows BRIDGE_PATH=/data/n8n
+# Deploy everything with one command
+make fresh-dev-auto
+
+# Start services in background
+make start-n8n-port-forward
 ```
 
-### **2. Configure n8n SFTP Node**
+### **2. File Bridge + Copy Operations**
+```bash
+# Create file bridge
+make new-local-file-bridge BRIDGE_NAME=workflows BRIDGE_PATH=~/n8n-data
+
+# Copy files to bridge
+./bridge-copy.sh to workflows ~/mydata.csv /data/input/
+
+# List files in bridge
+./bridge-copy.sh ls workflows
+```
+
+### **3. Configure n8n SFTP Node**
 ```json
 {
   "host": "file-bridge-workflows.file-bridges.svc.cluster.local",
-  "port": 2201,
+  "port": 2202,
   "username": "bridge-user",
-  "authentication": "privateKey",
-  "privateKey": "{{$credentials.workflows-ssh-key}}"
+  "path": "/data/input/"
 }
 ```
 
-### **3. Access Files in Workflows**
-Your n8n workflows can now securely read/write files through the SFTP bridge!
+### **4. Access Files in Workflows**
+- **n8n UI**: http://localhost:5678 (via background port-forward)
+- **Files available**: `/data/input/`, `/data/output/`, etc.
+- **Copy results back**: `./bridge-copy.sh from workflows /data/output/ ~/results/`
 
 ---
 
@@ -149,7 +229,42 @@ Your n8n workflows can now securely read/write files through the SFTP bridge!
 
 ---
 
-## 🌟 Why "Starbridge"?
+## � New Features (Genesis Architecture v2.0)
+
+### **🚀 One-Command Deployment**
+Deploy the entire development environment with a single command:
+```bash
+make fresh-dev-auto  # Fully automated: nuclear-clean → deploy-dev → file-bridge
+```
+
+### **🔗 Background Port-Forward Management**
+Professional port-forward management with PID tracking:
+```bash
+make start-n8n-port-forward        # n8n in background
+make list-port-forwards            # Show all active forwards
+make stop-all-port-forwards        # Clean shutdown
+```
+
+### **📂 Advanced File Bridge Operations**
+Intelligent file copy system with both Makefile and script interfaces:
+```bash
+# Smart copy script (recommended)
+./bridge-copy.sh to starbridge-transfer ~/data/ /data/input/
+./bridge-copy.sh from starbridge-transfer /data/results/ ~/output/
+
+# Makefile integration
+make copy-to-bridge BRIDGE_NAME=data SOURCE=~/file.txt DEST=/data/
+```
+
+### **🏗️ Service Redesignation**
+Clean enterprise naming with backward compatibility:
+- **Stellar Core Database** (formerly data_vault_deployment)
+- **Workflow Nexus** (n8n with enhanced configuration)
+- **Background Process Management** (PID tracking and cleanup)
+
+---
+
+## �🌟 Why "Starbridge"?
 
 - **Star** - Reaches for the stars in automation excellence
 - **Bridge** - Connects disparate systems seamlessly
@@ -165,7 +280,7 @@ Your n8n workflows can now securely read/write files through the SFTP bridge!
 - **[Neural Nexus Deployment](neural_nexus_deployment/README.md)** - AI model deployment guide
 - **[Guardian Nexus Security](guardian_nexus_deployment/README.md)** - Authentication and authorization
 - **[Vault Nexus Security](vault_nexus_deployment/README.md)** - Enterprise secret management
-- **[Data Vault Database](data_vault_deployment/README.md)** - PostgreSQL database services
+- **[Stellar Core Database](stellar_core_database_deployment/README.md)** - PostgreSQL database services
 - **[Starbridge Beacon Web](starbridge_beacon_deployment/README.md)** - Web interface and monitoring
 
 ---

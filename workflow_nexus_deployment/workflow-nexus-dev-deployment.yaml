@@ -30,7 +30,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: n8n
-        image: n8nio/n8n:1.63.4
+        image: n8nio/n8n:latest
         ports:
         - containerPort: 5678
           name: http

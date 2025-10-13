@@ -1027,6 +1027,143 @@ workflow-nexus-port-forward: ## 📋 MONITOR Quick port-forward to Workflow Nexu
 	@$(MAKE) port-forward SERVICE=workflow-nexus-service TARGET_NAMESPACE=$(DEV_NAMESPACE) TARGET_PORT=5678 PORT=5678
 
 # =============================================================================
+# 🔗 BACKGROUND PORT-FORWARDING MANAGEMENT
+# =============================================================================
+
+PORT_FORWARD_PID_DIR := /tmp/starbridge-port-forwards
+
+.PHONY: start-port-forward
+start-port-forward: ## 📋 MONITOR Start port-forward in background
+	@if [ -z "$(SERVICE)" ] || [ -z "$(TARGET_NAMESPACE)" ] || [ -z "$(PORT)" ] || [ -z "$(TARGET_PORT)" ]; then \
+		echo "❌ Missing required parameters"; \
+		echo "💡 Usage: make start-port-forward SERVICE=<svc> TARGET_NAMESPACE=<ns> PORT=<local> TARGET_PORT=<remote>"; \
+		echo "💡 Example: make start-port-forward SERVICE=workflow-nexus-service TARGET_NAMESPACE=starbridge-dev PORT=5678 TARGET_PORT=5678"; \
+		exit 1; \
+	fi
+	@echo "🔗⚡ Starting background port-forward..."
+	@echo "🔷 Service: $(SERVICE)"
+	@echo "🔷 Namespace: $(TARGET_NAMESPACE)"
+	@echo "🔷 Port Mapping: localhost:$(PORT) → $(SERVICE):$(TARGET_PORT)"
+	@mkdir -p $(PORT_FORWARD_PID_DIR)
+	@# Kill existing port-forward on same port
+	@$(MAKE) stop-port-forward PORT=$(PORT) SILENT=true 2>/dev/null || true
+	@# Start new port-forward in background
+	@kubectl port-forward -n $(TARGET_NAMESPACE) service/$(SERVICE) $(PORT):$(TARGET_PORT) >/dev/null 2>&1 & \
+	echo $$! > $(PORT_FORWARD_PID_DIR)/$(SERVICE)-$(PORT).pid
+	@sleep 2
+	@if ps -p $$(cat $(PORT_FORWARD_PID_DIR)/$(SERVICE)-$(PORT).pid 2>/dev/null) >/dev/null 2>&1; then \
+		echo "✅ Port-forward started successfully"; \
+		echo "🌐 Access at: http://localhost:$(PORT)"; \
+		echo "📋 PID: $$(cat $(PORT_FORWARD_PID_DIR)/$(SERVICE)-$(PORT).pid)"; \
+		echo "🛑 Stop with: make stop-port-forward PORT=$(PORT)"; \
+	else \
+		echo "❌ Failed to start port-forward"; \
+		rm -f $(PORT_FORWARD_PID_DIR)/$(SERVICE)-$(PORT).pid; \
+		exit 1; \
+	fi
+
+.PHONY: stop-port-forward
+stop-port-forward: ## 📋 MONITOR Stop specific port-forward by port
+	@if [ -z "$(PORT)" ]; then \
+		echo "❌ PORT is required"; \
+		echo "💡 Usage: make stop-port-forward PORT=<port>"; \
+		echo "💡 Example: make stop-port-forward PORT=5678"; \
+		exit 1; \
+	fi
+	@mkdir -p $(PORT_FORWARD_PID_DIR)
+	@if [ "$(SILENT)" != "true" ]; then echo "🛑 Stopping port-forward on port $(PORT)..."; fi
+	@PID_FILE=$$(find $(PORT_FORWARD_PID_DIR) -name "*-$(PORT).pid" | head -1 2>/dev/null || echo ""); \
+	if [ -n "$$PID_FILE" ] && [ -f "$$PID_FILE" ]; then \
+		PID=$$(cat "$$PID_FILE" 2>/dev/null || echo ""); \
+		if [ -n "$$PID" ] && ps -p "$$PID" >/dev/null 2>&1; then \
+			kill "$$PID" 2>/dev/null || true; \
+			if [ "$(SILENT)" != "true" ]; then echo "✅ Port-forward stopped (PID: $$PID)"; fi; \
+		else \
+			if [ "$(SILENT)" != "true" ]; then echo "⚠️ Process not running"; fi; \
+		fi; \
+		rm -f "$$PID_FILE" 2>/dev/null || true; \
+	else \
+		pkill -f "kubectl port-forward.*:$(PORT)" 2>/dev/null || true; \
+		if [ "$(SILENT)" != "true" ]; then echo "🔍 Attempted cleanup of port $(PORT)"; fi; \
+	fi
+
+.PHONY: stop-all-port-forwards
+stop-all-port-forwards: ## 📋 MONITOR Stop all background port-forwards
+	@echo "🛑🧹 Stopping all port-forwards..."
+	@mkdir -p $(PORT_FORWARD_PID_DIR)
+	@if [ -d "$(PORT_FORWARD_PID_DIR)" ]; then \
+		for pid_file in $(PORT_FORWARD_PID_DIR)/*.pid; do \
+			if [ -f "$$pid_file" ]; then \
+				PID=$$(cat "$$pid_file" 2>/dev/null || echo ""); \
+				SERVICE_PORT=$$(basename "$$pid_file" .pid); \
+				if [ -n "$$PID" ] && ps -p "$$PID" >/dev/null 2>&1; then \
+					kill "$$PID" 2>/dev/null || true; \
+					echo "✅ Stopped $$SERVICE_PORT (PID: $$PID)"; \
+				else \
+					echo "⚠️ Process not running for $$SERVICE_PORT"; \
+				fi; \
+				rm -f "$$pid_file"; \
+			fi; \
+		done; \
+	fi
+	@pkill -f "kubectl port-forward" 2>/dev/null || true
+	@echo "🧹 All port-forwards stopped"
+
+.PHONY: list-port-forwards
+list-port-forwards: ## 📋 MONITOR List all active port-forwards
+	@echo "🔗📋 Active Port-Forwards"
+	@echo "─════════════════════════════════════════════════════════════════════════════════"
+	@mkdir -p $(PORT_FORWARD_PID_DIR)
+	@FOUND=false; \
+	if [ -d "$(PORT_FORWARD_PID_DIR)" ]; then \
+		for pid_file in $(PORT_FORWARD_PID_DIR)/*.pid; do \
+			if [ -f "$$pid_file" ]; then \
+				PID=$$(cat "$$pid_file" 2>/dev/null || echo ""); \
+				SERVICE_PORT=$$(basename "$$pid_file" .pid); \
+				SERVICE=$$(echo "$$SERVICE_PORT" | sed 's/-[0-9]*$$//'); \
+				PORT=$$(echo "$$SERVICE_PORT" | sed 's/.*-//'); \
+				if [ -n "$$PID" ] && ps -p "$$PID" >/dev/null 2>&1; then \
+					echo "✅ $$SERVICE:$$PORT → http://localhost:$$PORT (PID: $$PID)"; \
+					FOUND=true; \
+				else \
+					echo "❌ $$SERVICE:$$PORT (PID: $$PID - not running)"; \
+					rm -f "$$pid_file"; \
+				fi; \
+			fi; \
+		done; \
+	fi; \
+	if [ "$$FOUND" = "false" ]; then \
+		echo "💡 No active port-forwards found"; \
+		echo ""; \
+		echo "🚀 Quick start commands:"; \
+		echo "  make start-n8n-port-forward"; \
+		echo "  make start-postgres-port-forward"; \
+	fi
+	@echo ""
+	@echo "🔷 System port-forwards (if any):"
+	@ps aux | grep "kubectl port-forward" | grep -v grep || echo "  💡 No system port-forwards running"
+
+# =============================================================================
+# 🚀 QUICK START PORT-FORWARDS
+# =============================================================================
+
+.PHONY: start-n8n-port-forward
+start-n8n-port-forward: ## 📋 MONITOR Start n8n port-forward in background
+	@$(MAKE) start-port-forward SERVICE=workflow-nexus-service TARGET_NAMESPACE=$(DEV_NAMESPACE) PORT=5678 TARGET_PORT=5678
+
+.PHONY: start-postgres-port-forward
+start-postgres-port-forward: ## 📋 MONITOR Start PostgreSQL port-forward in background
+	@$(MAKE) start-port-forward SERVICE=postgres-service TARGET_NAMESPACE=$(DEV_DATABASE_NAMESPACE) PORT=5432 TARGET_PORT=5432
+
+.PHONY: start-vault-port-forward
+start-vault-port-forward: ## 📋 MONITOR Start Vault port-forward in background
+	@$(MAKE) start-port-forward SERVICE=vault-nexus TARGET_NAMESPACE=$(SECURITY_NAMESPACE) PORT=8200 TARGET_PORT=8200
+
+.PHONY: start-ollama-port-forward
+start-ollama-port-forward: ## 📋 MONITOR Start Ollama port-forward in background
+	@$(MAKE) start-port-forward SERVICE=ollama-service TARGET_NAMESPACE=$(OLLAMA_NAMESPACE) PORT=11434 TARGET_PORT=11434
+
+# =============================================================================
 # ⚙️ CONFIGURATION TARGETS
 # =============================================================================
 
@@ -1523,6 +1660,184 @@ show-file-bridge-keys: ## 📁 BRIDGE Show SSH key information for bridge
 .PHONY: list-file-bridge-keys
 list-file-bridge-keys: ## 📁 BRIDGE List all available SSH keypairs
 	@cd file_bridge_deployment && ./ssh-key-manager.sh list
+
+# =============================================================================
+# 📂 FILE BRIDGE COPY OPERATIONS
+# =============================================================================
+
+.PHONY: copy-to-bridge
+copy-to-bridge: ## 📁 BRIDGE Copy file or folder to file bridge
+	@if [ -z "$(BRIDGE_NAME)" ]; then \
+		echo "❌ BRIDGE_NAME is required"; \
+		echo "💡 Usage: make copy-to-bridge BRIDGE_NAME=<name> SOURCE=<path> [DEST=<path>]"; \
+		echo "💡 Examples:"; \
+		echo "   make copy-to-bridge BRIDGE_NAME=starbridge-transfer SOURCE=~/myfile.txt"; \
+		echo "   make copy-to-bridge BRIDGE_NAME=starbridge-transfer SOURCE=~/myfolder DEST=/data/input/"; \
+		exit 1; \
+	fi
+	@if [ -z "$(SOURCE)" ]; then \
+		echo "❌ SOURCE is required"; \
+		echo "💡 Usage: make copy-to-bridge BRIDGE_NAME=<name> SOURCE=<path> [DEST=<path>]"; \
+		exit 1; \
+	fi
+	@echo "📂➡️  Copying to File Bridge: $(BRIDGE_NAME)"
+	@echo "─════════════════════════════════════════════════════════════════════════════════"
+	
+	# Get pod name for the bridge (try multiple label selectors)
+	@POD_NAME=$$(kubectl get pods -n $(FILE_BRIDGE_NAMESPACE) -l bridge-name=$(BRIDGE_NAME) -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || \
+	kubectl get pods -n $(FILE_BRIDGE_NAMESPACE) -l app=file-bridge-$(BRIDGE_NAME) -o jsonpath='{.items[0].metadata.name}' 2>/dev/null); \
+	if [ -z "$$POD_NAME" ]; then \
+		echo "❌ Bridge '$(BRIDGE_NAME)' not found or not running"; \
+		echo "💡 Available bridges:"; \
+		$(MAKE) list-file-bridges; \
+		exit 1; \
+	fi; \
+	\
+	# Expand source path
+	SOURCE_EXPANDED=$$(echo "$(SOURCE)" | sed "s|^~|$$HOME|"); \
+	if [ ! -e "$$SOURCE_EXPANDED" ]; then \
+		echo "❌ Source path does not exist: $$SOURCE_EXPANDED"; \
+		exit 1; \
+	fi; \
+	\
+	# Set destination path (default to /data/)
+	DEST_PATH="$(DEST)"; \
+	if [ -z "$$DEST_PATH" ]; then \
+		if [ -d "$$SOURCE_EXPANDED" ]; then \
+			DEST_PATH="/data/$$(basename "$$SOURCE_EXPANDED")/"; \
+		else \
+			DEST_PATH="/data/"; \
+		fi; \
+	fi; \
+	\
+	echo "📂 Source: $$SOURCE_EXPANDED"; \
+	echo "🎯 Destination: $$DEST_PATH"; \
+	echo "📦 Target Pod: $$POD_NAME"; \
+	echo ""; \
+	\
+	# Copy the file/folder
+	echo "⚙️ Copying..."; \
+	if kubectl cp "$$SOURCE_EXPANDED" "$(FILE_BRIDGE_NAMESPACE)/$$POD_NAME:$$DEST_PATH"; then \
+		echo "✅ Copy completed successfully!"; \
+		echo ""; \
+		echo "📋 Files now available in bridge:"; \
+		kubectl exec -n $(FILE_BRIDGE_NAMESPACE) "$$POD_NAME" -- find /data -name "$$(basename "$$SOURCE_EXPANDED")" -ls 2>/dev/null || \
+		kubectl exec -n $(FILE_BRIDGE_NAMESPACE) "$$POD_NAME" -- ls -la /data/ 2>/dev/null; \
+	else \
+		echo "❌ Copy failed"; \
+		exit 1; \
+	fi
+
+.PHONY: copy-from-bridge
+copy-from-bridge: ## 📁 BRIDGE Copy file or folder from file bridge to local
+	@if [ -z "$(BRIDGE_NAME)" ]; then \
+		echo "❌ BRIDGE_NAME is required"; \
+		echo "💡 Usage: make copy-from-bridge BRIDGE_NAME=<name> SOURCE=<path> [DEST=<path>]"; \
+		echo "💡 Examples:"; \
+		echo "   make copy-from-bridge BRIDGE_NAME=starbridge-transfer SOURCE=/data/output.txt"; \
+		echo "   make copy-from-bridge BRIDGE_NAME=starbridge-transfer SOURCE=/data/results/ DEST=~/downloads/"; \
+		exit 1; \
+	fi
+	@if [ -z "$(SOURCE)" ]; then \
+		echo "❌ SOURCE path in bridge is required"; \
+		echo "💡 Usage: make copy-from-bridge BRIDGE_NAME=<name> SOURCE=<path> [DEST=<path>]"; \
+		exit 1; \
+	fi
+	@echo "📂⬅️  Copying from File Bridge: $(BRIDGE_NAME)"
+	@echo "─════════════════════════════════════════════════════════════════════════════════"
+	
+	# Get pod name for the bridge (try multiple label selectors)
+	@POD_NAME=$$(kubectl get pods -n $(FILE_BRIDGE_NAMESPACE) -l bridge-name=$(BRIDGE_NAME) -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || \
+	kubectl get pods -n $(FILE_BRIDGE_NAMESPACE) -l app=file-bridge-$(BRIDGE_NAME) -o jsonpath='{.items[0].metadata.name}' 2>/dev/null); \
+	if [ -z "$$POD_NAME" ]; then \
+		echo "❌ Bridge '$(BRIDGE_NAME)' not found or not running"; \
+		exit 1; \
+	fi; \
+	\
+	# Set destination path (default to current directory)
+	DEST_PATH="$(DEST)"; \
+	if [ -z "$$DEST_PATH" ]; then \
+		DEST_PATH="./"; \
+	fi; \
+	DEST_EXPANDED=$$(echo "$$DEST_PATH" | sed "s|^~|$$HOME|"); \
+	\
+	echo "📂 Source: $(SOURCE)"; \
+	echo "🎯 Destination: $$DEST_EXPANDED"; \
+	echo "📦 Source Pod: $$POD_NAME"; \
+	echo ""; \
+	\
+	# Copy the file/folder
+	echo "⚙️ Copying..."; \
+	if kubectl cp "$(FILE_BRIDGE_NAMESPACE)/$$POD_NAME:$(SOURCE)" "$$DEST_EXPANDED"; then \
+		echo "✅ Copy completed successfully!"; \
+		echo "📋 Files copied to: $$DEST_EXPANDED"; \
+	else \
+		echo "❌ Copy failed"; \
+		exit 1; \
+	fi
+
+.PHONY: ls-bridge
+ls-bridge: ## 📁 BRIDGE List files in file bridge
+	@if [ -z "$(BRIDGE_NAME)" ]; then \
+		echo "❌ BRIDGE_NAME is required"; \
+		echo "💡 Usage: make ls-bridge BRIDGE_NAME=<name> [PATH=<path>]"; \
+		echo "💡 Examples:"; \
+		echo "   make ls-bridge BRIDGE_NAME=starbridge-transfer"; \
+		echo "   make ls-bridge BRIDGE_NAME=starbridge-transfer PATH=/data/input/"; \
+		exit 1; \
+	fi
+	@echo "📂📋 Listing File Bridge Contents: $(BRIDGE_NAME)"
+	@echo "─════════════════════════════════════════════════════════════════════════════════"
+	
+	# Get pod name for the bridge (try multiple label selectors)
+	@POD_NAME=$$(kubectl get pods -n $(FILE_BRIDGE_NAMESPACE) -l bridge-name=$(BRIDGE_NAME) -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || \
+	kubectl get pods -n $(FILE_BRIDGE_NAMESPACE) -l app=file-bridge-$(BRIDGE_NAME) -o jsonpath='{.items[0].metadata.name}' 2>/dev/null); \
+	if [ -z "$$POD_NAME" ]; then \
+		echo "❌ Bridge '$(BRIDGE_NAME)' not found or not running"; \
+		exit 1; \
+	fi; \
+	\
+	# Set path (default to /data/)
+	LIST_PATH="$(PATH)"; \
+	if [ -z "$$LIST_PATH" ]; then \
+		LIST_PATH="/data/"; \
+	fi; \
+	\
+	echo "📂 Path: $$LIST_PATH"; \
+	echo "📦 Pod: $$POD_NAME"; \
+	echo ""; \
+	kubectl exec -n $(FILE_BRIDGE_NAMESPACE) "$$POD_NAME" -- ls -la "$$LIST_PATH" 2>/dev/null || \
+	echo "❌ Path not found or not accessible"
+
+.PHONY: exec-bridge
+exec-bridge: ## 📁 BRIDGE Execute command in file bridge pod
+	@if [ -z "$(BRIDGE_NAME)" ]; then \
+		echo "❌ BRIDGE_NAME is required"; \
+		echo "💡 Usage: make exec-bridge BRIDGE_NAME=<name> [CMD=<command>]"; \
+		echo "💡 Examples:"; \
+		echo "   make exec-bridge BRIDGE_NAME=starbridge-transfer"; \
+		echo "   make exec-bridge BRIDGE_NAME=starbridge-transfer CMD='ls -la /data'"; \
+		exit 1; \
+	fi
+	@echo "🖥️  Executing in File Bridge: $(BRIDGE_NAME)"
+	@echo "─════════════════════════════════════════════════════════════════════════════════"
+	
+	# Get pod name for the bridge (try multiple label selectors)
+	@POD_NAME=$$(kubectl get pods -n $(FILE_BRIDGE_NAMESPACE) -l bridge-name=$(BRIDGE_NAME) -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || \
+	kubectl get pods -n $(FILE_BRIDGE_NAMESPACE) -l app=file-bridge-$(BRIDGE_NAME) -o jsonpath='{.items[0].metadata.name}' 2>/dev/null); \
+	if [ -z "$$POD_NAME" ]; then \
+		echo "❌ Bridge '$(BRIDGE_NAME)' not found or not running"; \
+		exit 1; \
+	fi; \
+	\
+	# Execute command or start interactive shell
+	if [ -z "$(CMD)" ]; then \
+		echo "🖥️  Starting interactive shell in $$POD_NAME..."; \
+		kubectl exec -it -n $(FILE_BRIDGE_NAMESPACE) "$$POD_NAME" -- /bin/sh; \
+	else \
+		echo "🖥️  Executing: $(CMD)"; \
+		kubectl exec -n $(FILE_BRIDGE_NAMESPACE) "$$POD_NAME" -- /bin/sh -c "$(CMD)"; \
+	fi
 
 # =============================================================================
 # 🌐 WEB INTERFACE TARGETS
