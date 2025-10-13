@@ -19,7 +19,7 @@ data:
   N8N_AUTHENTICATION_TYPE: "email"
   # Data Vault configuration - cross-namespace to Data Vault
   DB_TYPE: "postgresdb"
-  DB_POSTGRESDB_HOST: "postgres-service.data-vault-dev.svc.cluster.local"
+  DB_POSTGRESDB_HOST: "postgres-service.stellar-core-dev.svc.cluster.local"
   DB_POSTGRESDB_PORT: "5432"
   DB_POSTGRESDB_DATABASE: "workflow_nexus_dev"
   DB_POSTGRESDB_USER: "workflow_nexus_dev_user"

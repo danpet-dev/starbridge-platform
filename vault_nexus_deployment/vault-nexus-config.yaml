@@ -8,46 +8,63 @@ metadata:
     component: config
 data:
   vault.hcl: |
-    # Vault Nexus Configuration - Starbridge Platform
-    # High-security configuration for enterprise secret management
+    # 🔐 Vault Nexus Configuration - Starbridge Platform
+    # Enterprise-grade secret management for Kubernetes environments
     
     ui = true
     
-    # Storage backend - File system for simplicity
+    # Storage backend - File system (simple, reliable for single-node)
     storage "file" {
       path = "/vault/data"
+      mode = 0640
     }
     
-    # Network listener
+    # Network listener - Kubernetes service ready
     listener "tcp" {
       address         = "0.0.0.0:8200"
       cluster_address = "0.0.0.0:8201"
       tls_disable     = true
-      # Note: In production, enable TLS with proper certificates
+      # 🔧 Development Mode: TLS disabled for ease of setup
+      # 🚨 Production: Enable TLS with proper certificates
+      
+      # CORS for UI access
+      cors_enabled = true
+      cors_allowed_origins = ["*"]
     }
     
-    # API address
+    # API and cluster addresses for Kubernetes service discovery
     api_addr = "http://vault-nexus.security-nexus.svc.cluster.local:8200"
     cluster_addr = "http://vault-nexus.security-nexus.svc.cluster.local:8201"
     
-    # Logging
+    # Logging - Enhanced for development debugging
     log_level = "Info"
-    log_format = "json"
+    log_format = "standard"
     
-    # Disable memory lock for containerized environments
+    # Container optimizations
     disable_mlock = true
+    disable_sealwrap = true
     
-    # Plugin directory
+    # Plugin directory for future extensions
     plugin_directory = "/vault/plugins"
     
-    # Enable raw endpoint (needed for health checks)
+    # Health check endpoint
     raw_storage_endpoint = true
     
     # Cluster settings
     cluster_name = "starbridge-vault-cluster"
     
-    # Performance settings
-    default_lease_ttl = "168h"
+    # Lease settings - Balanced for production use
+    default_lease_ttl = "24h"
+    max_lease_ttl = "720h"        # 30 days max
+    
+    # Performance tuning
+    cache_size = "32000"
+    
+    # Telemetry (disable for privacy)
+    telemetry {
+      disable_hostname = true
+      prometheus_retention_time = "30s"
+    }
     max_lease_ttl = "720h"
     
     # Cache settings

@@ -7,9 +7,10 @@
 # PRODUCTION MODE: Enterprise security, Guardian Nexus OIDC, full fleet
 #
 # Fleet Service Designations:
-# - Workflow Nexus (n8n)        - Data Vault (PostgreSQL)
+# - Workflow Nexus (n8n)        - Stellar Core Database (PostgreSQL)
 # - Neural Nexus (Ollama)       - Starbridge Beacon (webserver)  
 # - File Bridge (data sync)     - Guardian Nexus (Keycloak OIDC)
+# - Vault Nexus (HashiCorp)     - Security & Secret Management
 #
 # Version: 2.0.0 - GENESIS ARCHITECTURE
 # =============================================================================
@@ -34,12 +35,16 @@ INFO      := 💡
 # 🏗️ Platform Architecture Configuration
 # Developer Mode - Fast & Simple
 DEV_NAMESPACE           := starbridge-dev
-DEV_DATA_NAMESPACE      := data-vault-dev
+DEV_DATABASE_NAMESPACE  := stellar-core-dev
 
 # Production Mode - Enterprise & Secure  
 PROD_NAMESPACE          := starbridge-prod
-PROD_DATA_NAMESPACE     := data-vault-prod
+PROD_DATABASE_NAMESPACE := stellar-core-prod
 SECURITY_NAMESPACE      := security-nexus
+
+# Legacy compatibility
+DEV_DATA_NAMESPACE      := $(DEV_DATABASE_NAMESPACE)
+PROD_DATA_NAMESPACE     := $(PROD_DATABASE_NAMESPACE)
 
 # Common Configuration
 DEFAULT_PORT            := 8080
@@ -55,16 +60,17 @@ TAIL_LINES             ?= 100
 N8N_NAMESPACE          := $(if $(filter prod,$(MODE)),$(PROD_NAMESPACE),$(DEV_NAMESPACE))
 
 # Fleet directory structure (Genesis Architecture v2.0.0)
-WORKFLOW_NEXUS_DIR     := workflow_nexus_deployment
-DATA_VAULT_DIR         := data_vault_deployment  
-GUARDIAN_NEXUS_DIR     := guardian_nexus_deployment
-NEURAL_NEXUS_DIR       := neural_nexus_deployment
-STARBRIDGE_BEACON_DIR  := starbridge_beacon_deployment
-FILE_BRIDGE_DIR        := file_bridge_deployment
+WORKFLOW_NEXUS_DIR        := workflow_nexus_deployment
+STELLAR_CORE_DATABASE_DIR := stellar_core_database_deployment
+GUARDIAN_NEXUS_DIR        := guardian_nexus_deployment
+NEURAL_NEXUS_DIR          := neural_nexus_deployment
+STARBRIDGE_BEACON_DIR     := starbridge_beacon_deployment
+FILE_BRIDGE_DIR           := file_bridge_deployment
 
 # Legacy directory compatibility for cleanup functions
-N8N_DIR               := $(WORKFLOW_NEXUS_DIR)
-POSTGRES_DIR          := $(DATA_VAULT_DIR)
+N8N_DIR                   := $(WORKFLOW_NEXUS_DIR)
+POSTGRES_DIR              := $(STELLAR_CORE_DATABASE_DIR)
+DATA_VAULT_DIR            := $(STELLAR_CORE_DATABASE_DIR)  # Backward compatibility
 
 # Derived variables for cross-namespace deployment
 DB_NAME_SAFE            := $(shell echo "$(N8N_NAMESPACE)" | tr '-' '_')
@@ -169,8 +175,11 @@ help: ## 📋 Display Starbridge Platform Fleet Command Center
 	@echo ""
 	@echo "═════════════════════════════════════════════════════════════════════════════════"
 	@echo "$(ROCKET) Quick Start Examples:"
+	@echo "  make fresh-dev-auto                     - Complete fresh development deployment (no prompts)"
+	@echo "  make fresh-dev-deployment               - Complete fresh development deployment"
 	@echo "  make deploy-dev                         - Deploy Developer Mode (minimal setup)"
 	@echo "  make deploy-prod                        - Deploy Production Mode (full security)"
+	@echo "  make workflow-nexus-port-forward        - Access n8n at http://localhost:5678"
 	@echo "  make platform-status                    - Show both platform modes status"
 	@echo "  make sfrs-start-fleet                   - Start complete fleet with SFRS"
 	@echo "  make nuclear-clean                      - Complete platform reset"
@@ -198,6 +207,8 @@ deploy-vault-nexus: ## 🔐 DEPLOY Vault Nexus secret management
 	kubectl apply -f vault_nexus_deployment/vault-nexus-rbac.yaml
 	@echo "$(SHIELD) Deploying Vault server..."
 	kubectl apply -f vault_nexus_deployment/vault-nexus-deployment.yaml
+	@echo "$(SHIELD) Deploying Vault service..."
+	kubectl apply -f vault_nexus_deployment/vault-nexus-service.yaml
 	@echo "$(CHECK) Waiting for Vault to be ready..."
 	kubectl wait --for=condition=available deployment/vault-nexus -n security-nexus --timeout=300s
 	@echo "$(SHIELD) Deploying Vault Agent Injector..."
@@ -265,10 +276,10 @@ deploy-dev: ## $(ROCKET) DEPLOY Developer Mode - Fast minimal setup
 	@echo "═══════════════════════════════════════════════════════════════"
 	@echo "$(INFO) Fast iteration setup with minimal complexity"
 	@echo "$(BEACON) Namespace: $(DEV_NAMESPACE)"
-	@echo "$(DATABASE) Data Vault: $(DEV_DATA_NAMESPACE)"
+	@echo "$(DATABASE) Stellar Core Database: $(DEV_DATABASE_NAMESPACE)"
 	@echo ""
 	@$(MAKE) _create-dev-namespaces
-	@$(MAKE) _deploy-data-vault-dev
+	@$(MAKE) _deploy-stellar-core-database-dev
 	@$(MAKE) _deploy-workflow-nexus-dev
 	@$(MAKE) _deploy-neural-nexus-dev
 	@$(MAKE) _deploy-file-bridge-dev
@@ -278,18 +289,65 @@ deploy-dev: ## $(ROCKET) DEPLOY Developer Mode - Fast minimal setup
 	@echo "$(CHECK) Developer Mode deployment complete!"
 	@echo "$(NETWORK) SFRS Fleet Relay managing all connections"
 
+.PHONY: fresh-dev-deployment
+fresh-dev-deployment: ## $(ROCKET) DEPLOY Complete fresh development deployment workflow
+	@echo "$(ROCKET) Starting Fresh Development Deployment Workflow"
+	@echo "═══════════════════════════════════════════════════════════════"
+	@echo "$(INFO) This will:"
+	@echo "  1. $(CLEAN) Complete platform reset (nuclear-clean)"
+	@echo "  2. $(ROCKET) Deploy development environment" 
+	@echo "  3. $(BRIDGE) Create test file bridge"
+	@echo "  4. $(NETWORK) Setup n8n port forwarding"
+	@echo ""
+	@read -p "Continue with fresh deployment? [y/N]: " confirm; \
+	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
+		echo "$(ROCKET) Starting deployment sequence..."; \
+		$(MAKE) nuclear-clean; \
+		sleep 5; \
+		$(MAKE) deploy-dev; \
+		echo "$(BRIDGE) Creating test file bridge..."; \
+		$(MAKE) new-local-file-bridge BRIDGE_NAME=test-deployment BRIDGE_PATH=/tmp/test-bridge; \
+		echo "$(NETWORK) Starting n8n port forwarding..."; \
+		echo "$(INFO) n8n will be available at: http://localhost:5678"; \
+		echo "$(WARNING) Port forwarding will start - press Ctrl+C to stop"; \
+		sleep 3; \
+		$(MAKE) workflow-nexus-port-forward; \
+	else \
+		echo "$(WARNING) Deployment cancelled by user"; \
+	fi
+
+.PHONY: fresh-dev-auto
+fresh-dev-auto: ## $(ROCKET) DEPLOY Complete fresh development deployment (no prompts)
+	@echo "$(ROCKET) Starting Automated Fresh Development Deployment"
+	@echo "═══════════════════════════════════════════════════════════════"
+	@echo "$(INFO) Automated sequence:"
+	@echo "  1. $(CLEAN) Complete platform reset"
+	@echo "  2. $(ROCKET) Deploy development environment" 
+	@echo "  3. $(BRIDGE) Create test file bridge"
+	@echo ""
+	@echo "$(ROCKET) Starting deployment sequence..."
+	@$(MAKE) nuclear-clean
+	@sleep 5
+	@$(MAKE) deploy-dev
+	@echo "$(BRIDGE) Creating test file bridge..."
+	@$(MAKE) new-local-file-bridge BRIDGE_NAME=test-deployment BRIDGE_PATH=/tmp/test-bridge
+	@echo ""
+	@echo "$(CHECK) Fresh development deployment complete!"
+	@echo "$(INFO) To access n8n, run: make workflow-nexus-port-forward"
+	@echo "$(INFO) Then open: http://localhost:5678"
+
 .PHONY: deploy-prod
 deploy-prod: ## $(SHIELD) DEPLOY Production Mode - Enterprise security with Guardian Nexus
 	@echo "$(ROCKET) Deploying Starbridge Platform - PRODUCTION MODE"
 	@echo "═══════════════════════════════════════════════════════════════"
 	@echo "$(SHIELD) Enterprise security with Guardian Nexus OIDC"
 	@echo "$(BEACON) Namespace: $(PROD_NAMESPACE)"
-	@echo "$(DATABASE) Data Vault: $(PROD_DATA_NAMESPACE)"
+	@echo "$(DATABASE) Stellar Core Database: $(PROD_DATABASE_NAMESPACE)"
 	@echo "$(SHIELD) Security: $(SECURITY_NAMESPACE)"
 	@echo ""
 	@$(MAKE) _create-prod-namespaces
 	@$(MAKE) _deploy-guardian-nexus
-	@$(MAKE) _deploy-data-vault-prod
+	@$(MAKE) _deploy-stellar-core-database-prod
 	@$(MAKE) _deploy-workflow-nexus-secure
 	@$(MAKE) _deploy-neural-nexus-prod
 	@$(MAKE) _deploy-file-bridge-prod
@@ -320,13 +378,13 @@ platform-status: ## $(LOGS) MONITOR Show status of both platform modes
 .PHONY: deploy-dev-clean
 deploy-dev-clean: ## $(CLEAN) CLEAN Remove developer mode deployment
 	@echo "$(CLEAN) Cleaning Developer Mode deployment..."
-	@kubectl delete namespace $(DEV_NAMESPACE) $(DEV_DATA_NAMESPACE) --ignore-not-found=true
+	@kubectl delete namespace $(DEV_NAMESPACE) $(DEV_DATABASE_NAMESPACE) --ignore-not-found=true
 	@echo "$(CHECK) Developer Mode cleaned"
 
 .PHONY: deploy-prod-clean
 deploy-prod-clean: ## $(CLEAN) CLEAN Remove production mode deployment
 	@echo "$(CLEAN) Cleaning Production Mode deployment..."
-	@kubectl delete namespace $(PROD_NAMESPACE) $(PROD_DATA_NAMESPACE) $(SECURITY_NAMESPACE) --ignore-not-found=true
+	@kubectl delete namespace $(PROD_NAMESPACE) $(PROD_DATABASE_NAMESPACE) $(SECURITY_NAMESPACE) --ignore-not-found=true
 	@echo "$(CHECK) Production Mode cleaned"
 
 .PHONY: nuclear-clean
@@ -335,7 +393,7 @@ nuclear-clean: ## $(CLEAN) CLEAN Complete platform reset - remove everything
 	@echo "$(CLEAN) Stopping all SFRS sessions..."
 	@$(SFRS_SCRIPT) stop-all || true
 	@echo "$(CLEAN) Removing all platform namespaces..."
-	@kubectl get namespaces | grep -E "(starbridge|data-vault|guardian)" | awk '{print $$1}' | xargs -I {} kubectl delete namespace {} --timeout=60s --ignore-not-found=true || true
+	@kubectl get namespaces | grep -E "(starbridge|stellar-core|guardian)" | awk '{print $$1}' | xargs -I {} kubectl delete namespace {} --timeout=60s --ignore-not-found=true || true
 	@echo "$(CHECK) Nuclear clean complete - all platforms reset"
 
 # =============================================================================
@@ -346,13 +404,20 @@ nuclear-clean: ## $(CLEAN) CLEAN Complete platform reset - remove everything
 _create-dev-namespaces:
 	@echo "$(INFO) Creating developer mode namespaces..."
 	@kubectl create namespace $(DEV_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@kubectl create namespace $(DEV_DATA_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl create namespace $(DEV_DATABASE_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl label namespace $(DEV_NAMESPACE) name=$(DEV_NAMESPACE) --overwrite
+	@kubectl label namespace $(DEV_DATABASE_NAMESPACE) name=$(DEV_DATABASE_NAMESPACE) --overwrite
 
-.PHONY: _deploy-data-vault-dev
-_deploy-data-vault-dev:
-	@echo "$(DATABASE) Deploying Data Vault (PostgreSQL) for developer mode..."
-	@kubectl apply -f data_vault_deployment/ -n $(DEV_DATA_NAMESPACE)
-	@kubectl wait --for=condition=ready pod -l app=postgres --timeout=300s -n $(DEV_DATA_NAMESPACE)
+.PHONY: _deploy-stellar-core-database-dev
+_deploy-stellar-core-database-dev:
+	@echo "$(DATABASE) Deploying Stellar Core Database (PostgreSQL) for developer mode..."
+	@kubectl apply -f $(STELLAR_CORE_DATABASE_DIR)/postgres-configmap.yaml -n $(DEV_DATABASE_NAMESPACE)
+	@kubectl apply -f $(STELLAR_CORE_DATABASE_DIR)/postgres-secret.yaml -n $(DEV_DATABASE_NAMESPACE)
+	@kubectl apply -f $(STELLAR_CORE_DATABASE_DIR)/postgres-pvc.yaml -n $(DEV_DATABASE_NAMESPACE)
+	@kubectl apply -f $(STELLAR_CORE_DATABASE_DIR)/postgres-deployment.yaml -n $(DEV_DATABASE_NAMESPACE)
+	@kubectl apply -f $(STELLAR_CORE_DATABASE_DIR)/postgres-service.yaml -n $(DEV_DATABASE_NAMESPACE)
+	@kubectl apply -f $(STELLAR_CORE_DATABASE_DIR)/postgres-network-policy-dev.yaml
+	@kubectl wait --for=condition=ready pod -l app=postgres --timeout=300s -n $(DEV_DATABASE_NAMESPACE)
 
 .PHONY: _deploy-workflow-nexus-dev
 _deploy-workflow-nexus-dev:
@@ -403,7 +468,7 @@ _deploy-starbridge-beacon-dev:
 _start-dev-fleet:
 	@echo "$(NETWORK) Starting SFRS Fleet Relay for developer mode..."
 	@$(SFRS_SCRIPT) start workflow-nexus-dev workflow-nexus-service $(DEV_NAMESPACE) 5678 8080 || true
-	@$(SFRS_SCRIPT) start data-vault-dev postgres-service $(DEV_DATA_NAMESPACE) 5432 8082 || true
+	@$(SFRS_SCRIPT) start stellar-core-dev postgres-service $(DEV_DATABASE_NAMESPACE) 5432 8082 || true
 	@$(SFRS_SCRIPT) start starbridge-beacon-dev starbridge-webserver-service $(DEV_NAMESPACE) 80 8083 || true
 
 # =============================================================================
@@ -414,8 +479,11 @@ _start-dev-fleet:
 _create-prod-namespaces:
 	@echo "$(INFO) Creating production mode namespaces..."
 	@kubectl create namespace $(PROD_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@kubectl create namespace $(PROD_DATA_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl create namespace $(PROD_DATABASE_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@kubectl create namespace $(SECURITY_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl label namespace $(PROD_NAMESPACE) name=$(PROD_NAMESPACE) --overwrite
+	@kubectl label namespace $(PROD_DATABASE_NAMESPACE) name=$(PROD_DATABASE_NAMESPACE) --overwrite
+	@kubectl label namespace $(SECURITY_NAMESPACE) name=$(SECURITY_NAMESPACE) --overwrite
 
 .PHONY: _deploy-guardian-nexus
 _deploy-guardian-nexus:
@@ -423,11 +491,16 @@ _deploy-guardian-nexus:
 	@kubectl apply -f guardian_nexus_deployment/ -n $(SECURITY_NAMESPACE)
 	@kubectl wait --for=condition=ready pod -l app=guardian-nexus-keycloak --timeout=300s -n $(SECURITY_NAMESPACE)
 
-.PHONY: _deploy-data-vault-prod
-_deploy-data-vault-prod:
-	@echo "$(DATABASE) Deploying Data Vault (PostgreSQL) for production mode..."
-	@kubectl apply -f data_vault_deployment/ -n $(PROD_DATA_NAMESPACE)
-	@kubectl wait --for=condition=ready pod -l app=postgres --timeout=300s -n $(PROD_DATA_NAMESPACE)
+.PHONY: _deploy-stellar-core-database-prod
+_deploy-stellar-core-database-prod:
+	@echo "$(DATABASE) Deploying Stellar Core Database (PostgreSQL) for production mode..."
+	@kubectl apply -f $(STELLAR_CORE_DATABASE_DIR)/postgres-configmap.yaml -n $(PROD_DATABASE_NAMESPACE)
+	@kubectl apply -f $(STELLAR_CORE_DATABASE_DIR)/postgres-secret.yaml -n $(PROD_DATABASE_NAMESPACE)
+	@kubectl apply -f $(STELLAR_CORE_DATABASE_DIR)/postgres-pvc.yaml -n $(PROD_DATABASE_NAMESPACE)
+	@kubectl apply -f $(STELLAR_CORE_DATABASE_DIR)/postgres-deployment.yaml -n $(PROD_DATABASE_NAMESPACE)
+	@kubectl apply -f $(STELLAR_CORE_DATABASE_DIR)/postgres-service.yaml -n $(PROD_DATABASE_NAMESPACE)
+	@kubectl apply -f $(STELLAR_CORE_DATABASE_DIR)/postgres-network-policy-prod.yaml
+	@kubectl wait --for=condition=ready pod -l app=postgres --timeout=300s -n $(PROD_DATABASE_NAMESPACE)
 
 .PHONY: _deploy-workflow-nexus-secure
 _deploy-workflow-nexus-secure:
@@ -458,7 +531,7 @@ _start-prod-fleet:
 	@echo "$(NETWORK) Starting SFRS Fleet Relay for production mode..."
 	@$(SFRS_SCRIPT) start guardian-nexus guardian-nexus-service $(SECURITY_NAMESPACE) 8080 8081 || true
 	@$(SFRS_SCRIPT) start workflow-nexus-prod workflow-nexus-service $(PROD_NAMESPACE) 5678 8080 || true
-	@$(SFRS_SCRIPT) start data-vault-prod postgres-service $(PROD_DATA_NAMESPACE) 5432 8084 || true
+	@$(SFRS_SCRIPT) start stellar-core-prod postgres-service $(PROD_DATABASE_NAMESPACE) 5432 8084 || true
 
 # =============================================================================
 # �🐘 LEGACY DATABASE DEPLOYMENT TARGETS (COMPATIBILITY)
@@ -948,6 +1021,10 @@ port-forward-postgres: ## 📋 MONITOR Quick port-forward to PostgreSQL service
 .PHONY: port-forward-ollama
 port-forward-ollama: ## 📋 MONITOR Quick port-forward to Ollama AI service
 	@$(MAKE) port-forward SERVICE=ollama-service TARGET_NAMESPACE=$(OLLAMA_NAMESPACE) TARGET_PORT=11434 PORT=${OLLAMA_PORT}
+
+.PHONY: workflow-nexus-port-forward
+workflow-nexus-port-forward: ## 📋 MONITOR Quick port-forward to Workflow Nexus (n8n) service
+	@$(MAKE) port-forward SERVICE=workflow-nexus-service TARGET_NAMESPACE=$(DEV_NAMESPACE) TARGET_PORT=5678 PORT=5678
 
 # =============================================================================
 # ⚙️ CONFIGURATION TARGETS

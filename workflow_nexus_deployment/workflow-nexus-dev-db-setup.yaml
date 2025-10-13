@@ -22,7 +22,7 @@ spec:
         image: postgres:15
         env:
         - name: PGHOST
-          value: "postgres-service.data-vault-dev.svc.cluster.local"
+          value: "postgres-service.stellar-core-dev.svc.cluster.local"
         - name: PGPORT
           value: "5432"
         - name: PGUSER

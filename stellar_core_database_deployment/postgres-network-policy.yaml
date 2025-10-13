@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: data-vault-policy
-  namespace: data-vault-prod
+  name: stellar-core-policy
+  namespace: stellar-core-prod
 spec:
   podSelector: {}
   policyTypes:
@@ -30,8 +30,8 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: data-vault-dev-policy
-  namespace: data-vault-dev
+  name: stellar-core-dev-policy
+  namespace: stellar-core-dev
 spec:
   podSelector: {}
   policyTypes:

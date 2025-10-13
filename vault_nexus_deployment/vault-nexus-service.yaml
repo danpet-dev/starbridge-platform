@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault-nexus
+  namespace: security-nexus
+  labels:
+    app: vault-nexus
+    component: vault
+    platform: starbridge
+  annotations:
+    service.beta.kubernetes.io/external-traffic: OnlyLocal
+spec:
+  type: ClusterIP
+  selector:
+    app: vault-nexus
+    component: vault
+  ports:
+  - name: vault-ui
+    port: 8200
+    targetPort: 8200
+    protocol: TCP
+  - name: vault-cluster
+    port: 8201
+    targetPort: 8201
+    protocol: TCP
+
+---
+# Optional: LoadBalancer for external access
+# Uncomment if you need external access to Vault UI
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: vault-nexus-external
+#   namespace: security-nexus
+#   labels:
+#     app: vault-nexus
+#     component: vault-external
+# spec:
+#   type: LoadBalancer
+#   selector:
+#     app: vault-nexus
+#     component: vault
+#   ports:
+#   - name: vault-ui
+#     port: 8200
+#     targetPort: 8200
+#     protocol: TCP

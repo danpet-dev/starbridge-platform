@@ -1,0 +1,10 @@
+Host file-bridge-test-deployment
+    HostName %HOST%
+    User %USER%
+    Port 22
+    IdentityFile /home/keldamar/repos/starbridge-platform/file_bridge_deployment/ssh-keys/test-deployment/id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    ConnectTimeout 30
