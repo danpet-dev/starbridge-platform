@@ -72,7 +72,6 @@ PROD_DATA_NAMESPACE     := $(PROD_DATABASE_NAMESPACE)
 
 # Common Configuration
 DEFAULT_PORT            := 8080
-SFRS_SCRIPT            := ./sfrs.sh
 
 # Environment variables with defaults
 MODE                   ?= dev
@@ -188,9 +187,6 @@ help: ## 📋 Display Starbridge Platform Fleet Command Center
 	@echo "$(SHIELD) GUARDIAN NEXUS (Security):"
 	@awk '/^[a-zA-Z_-]+:.*?## .*GUARDIAN.*/ { printf "  %-30s %s\n", $$1, $$2 }' $(MAKEFILE_LIST) | sed 's/:.*##//'
 	@echo ""
-	@echo "$(NETWORK) SFRS (Fleet Relay System):"
-	@awk '/^[a-zA-Z_-]+:.*?## .*SFRS.*/ { printf "  %-30s %s\n", $$1, $$2 }' $(MAKEFILE_LIST) | sed 's/:.*##//'
-	@echo ""
 	@echo "$(LOGS) FLEET MONITORING:"
 	@awk '/^[a-zA-Z_-]+:.*?## .*MONITOR.*/ { printf "  %-30s %s\n", $$1, $$2 }' $(MAKEFILE_LIST) | sed 's/:.*##//'
 	@echo ""
@@ -205,7 +201,6 @@ help: ## 📋 Display Starbridge Platform Fleet Command Center
 	@echo "  make deploy-prod                        - Deploy Production Mode (full security)"
 	@echo "  make workflow-nexus-port-forward        - Access n8n at http://localhost:5678"
 	@echo "  make platform-status                    - Show both platform modes status"
-	@echo "  make sfrs-start-fleet                   - Start complete fleet with SFRS"
 	@echo "  make nuclear-clean                      - Complete platform reset"
 	@echo ""
 	@echo "$(CONFIG) Fleet Configuration:"
@@ -311,7 +306,6 @@ deploy-dev: ## $(ROCKET) DEPLOY Developer Mode - Fast minimal setup
 	@$(MAKE) _start-dev-fleet
 	@echo ""
 	@echo "$(CHECK) Developer Mode deployment complete!"
-	@echo "$(NETWORK) SFRS Fleet Relay managing all connections"
 
 .PHONY: fresh-dev-deployment
 fresh-dev-deployment: ## $(ROCKET) DEPLOY Complete fresh development deployment workflow
@@ -380,7 +374,6 @@ deploy-prod: ## $(SHIELD) DEPLOY Production Mode - Enterprise security with Guar
 	@echo ""
 	@echo "$(CHECK) Production Mode deployment complete!"
 	@echo "$(SHIELD) Guardian Nexus OIDC authentication active"
-	@echo "$(NETWORK) SFRS Fleet Relay managing all connections"
 
 .PHONY: platform-status
 platform-status: ## $(LOGS) MONITOR Show status of both platform modes
@@ -396,8 +389,6 @@ platform-status: ## $(LOGS) MONITOR Show status of both platform modes
 	@echo "$(SHIELD) GUARDIAN NEXUS STATUS:"
 	@kubectl get pods -n $(SECURITY_NAMESPACE) 2>/dev/null | head -10 || echo "  $(WARNING) Guardian Nexus not deployed"
 	@echo ""
-	@echo "$(NETWORK) SFRS FLEET RELAY STATUS:"
-	@$(SFRS_SCRIPT) list || echo "  $(WARNING) SFRS not active"
 
 .PHONY: deploy-dev-clean
 deploy-dev-clean: ## $(CLEAN) CLEAN Remove developer mode deployment
@@ -414,8 +405,6 @@ deploy-prod-clean: ## $(CLEAN) CLEAN Remove production mode deployment
 .PHONY: nuclear-clean
 nuclear-clean: ## $(CLEAN) CLEAN Complete platform reset - remove everything
 	@echo "$(WARNING) Initiating NUCLEAR CLEAN protocol..."
-	@echo "$(CLEAN) Stopping all SFRS sessions..."
-	@$(SFRS_SCRIPT) stop-all || true
 	@echo "$(CLEAN) Removing all platform namespaces..."
 	@kubectl get namespaces | grep -E "(starbridge|stellar-core|guardian)" | awk '{print $$1}' | xargs -I {} kubectl delete namespace {} --timeout=60s --ignore-not-found=true || true
 	@echo "$(CHECK) Nuclear clean complete - all platforms reset"
@@ -490,10 +479,6 @@ _deploy-starbridge-beacon-dev:
 
 .PHONY: _start-dev-fleet
 _start-dev-fleet:
-	@echo "$(NETWORK) Starting SFRS Fleet Relay for developer mode..."
-	@$(SFRS_SCRIPT) start workflow-nexus-dev workflow-nexus-service $(DEV_NAMESPACE) 5678 8080 || true
-	@$(SFRS_SCRIPT) start stellar-core-dev postgres-service $(DEV_DATABASE_NAMESPACE) 5432 8082 || true
-	@$(SFRS_SCRIPT) start starbridge-beacon-dev starbridge-webserver-service $(DEV_NAMESPACE) 80 8083 || true
 
 # =============================================================================
 # 🛠️ INTERNAL DEPLOYMENT HELPERS - PRODUCTION MODE
@@ -552,10 +537,6 @@ _deploy-starbridge-beacon-prod:
 
 .PHONY: _start-prod-fleet
 _start-prod-fleet:
-	@echo "$(NETWORK) Starting SFRS Fleet Relay for production mode..."
-	@$(SFRS_SCRIPT) start guardian-nexus guardian-nexus-service $(SECURITY_NAMESPACE) 8080 8081 || true
-	@$(SFRS_SCRIPT) start workflow-nexus-prod workflow-nexus-service $(PROD_NAMESPACE) 5678 8080 || true
-	@$(SFRS_SCRIPT) start stellar-core-prod postgres-service $(PROD_DATABASE_NAMESPACE) 5432 8084 || true
 
 # =============================================================================
 # �🐘 LEGACY DATABASE DEPLOYMENT TARGETS (COMPATIBILITY)
@@ -2051,11 +2032,6 @@ undeploy-guardian-nexus: ## 🛡️ SECURITY Remove Guardian Nexus deployment
 	@echo "    kubectl delete namespace security-nexus"
 	@echo "✅ Guardian Nexus undeployed!"
 
-.PHONY: sfrs-start-guardian-nexus
-sfrs-start-guardian-nexus: ## 🛡️ SFRS Start Guardian Nexus session with Fleet Relay System
-	@echo "🛡️ Starting SFRS session for Guardian Nexus..."
-	@./sfrs.sh start guardian-nexus guardian-nexus-service security-nexus 8080
-
 .PHONY: configure-workflow-nexus-oidc
 configure-workflow-nexus-oidc: ## 🛡️ SECURITY Configure Workflow Nexus OIDC client in Keycloak
 	@echo "🛡️ Configuring Workflow Nexus OIDC authentication..."
@@ -2069,12 +2045,7 @@ deploy-workflow-nexus-secure: ## 🛡️ SECURITY Deploy secure Workflow Nexus w
 	@kubectl apply -f n8n_deployment/workflow-nexus-secure-deployment.yaml
 	@echo "✅ Secure Workflow Nexus deployed!"
 	@echo "💡 Run 'make configure-workflow-nexus-oidc' to configure OIDC client"
-	@echo "💡 Run 'make sfrs-start-workflow-nexus-secure' to access securely"
-
-.PHONY: sfrs-start-workflow-nexus-secure
-sfrs-start-workflow-nexus-secure: ## 🛡️ SFRS Start secure Workflow Nexus session
-	@echo "🛡️ Starting SFRS session for secure Workflow Nexus..."
-	@./sfrs.sh start workflow-nexus-secure workflow-nexus-service n8n-prod 5678
+	@echo "💡 Access securely with background port-forward: make start-n8n-port-forward"
 
 .PHONY: phase2-security-deployment
 phase2-security-deployment: ## 🛡️ SECURITY Execute complete Phase 2 security deployment
@@ -2083,8 +2054,8 @@ phase2-security-deployment: ## 🛡️ SECURITY Execute complete Phase 2 securit
 	@$(MAKE) deploy-workflow-nexus-secure
 	@echo "🚀 Step 2: Configuring OIDC client..."
 	@$(MAKE) configure-workflow-nexus-oidc
-	@echo "🚀 Step 3: Starting secure SFRS sessions..."
-	@$(MAKE) sfrs-start-workflow-nexus-secure
+	@echo "🚀 Step 3: Starting background port-forward..."
+	@$(MAKE) start-n8n-port-forward
 	@echo "✅ Phase 2 deployment complete!"
 	@echo ""
 	@echo "🎯 Access Points:"
@@ -2097,53 +2068,8 @@ phase2-security-deployment: ## 🛡️ SECURITY Execute complete Phase 2 securit
 	@echo "  Platform Admin: admin / starbridge-admin-2025"
 
 # =============================================================================
-# 🌉 STARBRIDGE FLEET RELAY SYSTEM (SFRS) - MULTI-SESSION PORT-FORWARDING
+# 🔧 CONFIGURATION AND VALIDATION TARGETS  
 # =============================================================================
-
-.PHONY: sfrs-start-n8n
-sfrs-start-n8n: ## 🌉 SFRS Start n8n session with Fleet Relay System
-	@echo "🚀 Starting SFRS session for n8n..."
-	@./sfrs.sh start n8n n8n-service n8n-prod 5678
-
-.PHONY: sfrs-start-webserver
-sfrs-start-webserver: ## 🌉 SFRS Start webserver session with Fleet Relay System
-	@echo "🚀 Starting SFRS session for webserver..."
-	@./sfrs.sh start webserver starbridge-webserver-service starbridge-platform 80
-
-.PHONY: sfrs-start-postgres
-sfrs-start-postgres: ## 🌉 SFRS Start PostgreSQL session with Fleet Relay System
-	@echo "🚀 Starting SFRS session for PostgreSQL..."
-	@./sfrs.sh start postgres postgres-service database 5432
-
-.PHONY: sfrs-start-fleet
-sfrs-start-fleet: ## 🌉 SFRS Start complete fleet (n8n + webserver + postgres)
-	@echo "🚀 Deploying Starbridge Fleet Relay System..."
-	@echo "🌟 Starting n8n session..."
-	@./sfrs.sh start n8n n8n-service n8n-prod 5678 || true
-	@echo "🌟 Starting webserver session..."
-	@./sfrs.sh start webserver starbridge-webserver-service starbridge-platform 80 || true
-	@echo "🌟 Starting PostgreSQL session..."
-	@./sfrs.sh start postgres postgres-service database 5432 || true
-	@echo "✅ Fleet deployment complete!"
-	@./sfrs.sh list
-
-.PHONY: sfrs-list
-sfrs-list: ## 🌉 SFRS List all active sessions
-	@./sfrs.sh list
-
-.PHONY: sfrs-stop
-sfrs-stop: ## 🌉 SFRS Stop specific session (usage: make sfrs-stop SESSION=n8n)
-	@if [ -z "$(SESSION)" ]; then \
-		echo "❌ Usage: make sfrs-stop SESSION=<session_name>"; \
-		echo "💡 Available sessions:"; \
-		./sfrs.sh list; \
-	else \
-		./sfrs.sh stop $(SESSION); \
-	fi
-
-.PHONY: sfrs-stop-all
-sfrs-stop-all: ## 🌉 SFRS Stop all active sessions
-	@./sfrs.sh stop-all
 
 # ═══════════════════════════════════════════════════════════════
 # 🧠 NEURAL NEXUS - AI MODEL DEPLOYMENT AUTOMATION
@@ -2230,20 +2156,6 @@ list-neural-nexus-models: ## 🧠 List available Neural Nexus AI models from cat
 	@echo "  dolphin-8x7b   - Dolphin Mixtral 8x7B (Expert)"
 	@echo ""
 	@echo "💡 Usage: make deploy-neural-nexus-model MODEL=<model> NAMESPACE=<ns> MODE=<mode>"
-
-.PHONY: sfrs-show
-sfrs-show: ## 🌉 SFRS Show session details (usage: make sfrs-show SESSION=n8n)
-	@if [ -z "$(SESSION)" ]; then \
-		echo "❌ Usage: make sfrs-show SESSION=<session_name>"; \
-		echo "💡 Available sessions:"; \
-		./sfrs.sh list; \
-	else \
-		./sfrs.sh show $(SESSION); \
-	fi
-
-.PHONY: sfrs-init
-sfrs-init: ## 🌉 SFRS Initialize Fleet Relay System
-	@./sfrs.sh init
 
 # =============================================================================
 # 🔧 CONFIGURATION AND VALIDATION TARGETS  
