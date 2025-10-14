@@ -351,8 +351,10 @@ fresh-dev-auto: ## $(ROCKET) DEPLOY Complete fresh development deployment (no pr
 	@$(MAKE) new-local-file-bridge BRIDGE_NAME=test-deployment BRIDGE_PATH=/tmp/test-bridge
 	@echo ""
 	@echo "$(CHECK) Fresh development deployment complete!"
-	@echo "$(INFO) To access n8n, run: make workflow-nexus-port-forward"
-	@echo "$(INFO) Then open: http://localhost:5678"
+	@echo "$(INFO) Quick access commands:"
+	@echo "  make start-n8n-port-forward        # n8n at http://localhost:5678"
+	@echo "  make start-beacon-port-forward     # Webserver at http://localhost:8080"
+	@echo "  make start-postgres-port-forward   # PostgreSQL at localhost:5432"
 
 .PHONY: deploy-prod
 deploy-prod: ## $(SHIELD) DEPLOY Production Mode - Enterprise security with Guardian Nexus
@@ -1143,6 +1145,7 @@ list-port-forwards: ## 📋 MONITOR List all active port-forwards
 		echo "🚀 Quick start commands:"; \
 		echo "  make start-n8n-port-forward"; \
 		echo "  make start-postgres-port-forward"; \
+		echo "  make start-beacon-port-forward"; \
 	fi
 	@echo ""
 	@echo "🔷 System port-forwards (if any):"
@@ -1167,6 +1170,10 @@ start-vault-port-forward: ## 📋 MONITOR Start Vault port-forward in background
 .PHONY: start-ollama-port-forward
 start-ollama-port-forward: ## 📋 MONITOR Start Ollama port-forward in background
 	@$(MAKE) start-port-forward SERVICE=ollama-service TARGET_NAMESPACE=$(OLLAMA_NAMESPACE) PORT=11434 TARGET_PORT=11434
+
+.PHONY: start-beacon-port-forward
+start-beacon-port-forward: ## 📋 MONITOR Start Starbridge Beacon (webserver) port-forward in background
+	@$(MAKE) start-port-forward SERVICE=starbridge-webserver-service TARGET_NAMESPACE=starbridge-platform PORT=8080 TARGET_PORT=80
 
 # =============================================================================
 # ⚙️ CONFIGURATION TARGETS
@@ -1887,16 +1894,16 @@ web-preview: ## 🌐 WEB Preview web page in VS Code Simple Browser
 # =============================================================================
 
 .PHONY: deploy-webserver
-deploy-webserver: ## 🚀 WEBSERVER Deploy production nginx webserver to Kubernetes
-	@echo "🌟 Deploying Starbridge Platform Production Webserver..."
-	@kubectl apply -f webserver_deployment/webserver-pvc.yaml
-	@kubectl apply -f webserver_deployment/webserver-configmap.yaml
-	@kubectl apply -f webserver_deployment/webserver-deployment.yaml
-	@kubectl apply -f webserver_deployment/webserver-service.yaml
-	@kubectl apply -f webserver_deployment/webserver-ingress.yaml
-	@echo "✅ Production webserver deployed!"
+deploy-webserver: ## � BEACON Deploy Starbridge Beacon webserver to development
+	@echo "📡 Deploying Starbridge Beacon (Webserver) to development..."
+	@kubectl create namespace $(DEV_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl apply -f starbridge_beacon_deployment/webserver-pvc.yaml -n $(DEV_NAMESPACE)
+	@kubectl apply -f starbridge_beacon_deployment/webserver-configmap.yaml -n $(DEV_NAMESPACE)
+	@kubectl apply -f starbridge_beacon_deployment/webserver-deployment.yaml -n $(DEV_NAMESPACE)
+	@kubectl apply -f starbridge_beacon_deployment/webserver-service.yaml -n $(DEV_NAMESPACE)
+	@echo "✅ Starbridge Beacon deployed to $(DEV_NAMESPACE)!"
+	@echo "💡 Run 'make start-beacon-port-forward' to access at http://localhost:8080"
 	@echo "💡 Run 'make sync-web-content' to upload web files"
-	@echo "💡 Run 'make port-forward-webserver' to access locally"
 
 .PHONY: sync-web-content
 sync-web-content: ## 📁 WEBSERVER Sync web content to production webserver PVC
