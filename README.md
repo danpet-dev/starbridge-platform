@@ -323,6 +323,33 @@ This is a tribute to Star Trek's inspiring vision of the future, not a military 
 
 ---
 
+## ⚠️ Important Notes & Disclaimers
+
+### **🤖 AI-Generated Commit Messages**
+- All commit messages in this repository are **AI-generated** for consistency
+- They provide comprehensive technical documentation of changes
+- Human oversight ensures accuracy of the underlying code changes
+
+### **🔧 Platform Stability**
+- The developer strives to keep the platform in a **functional state** at all times
+- However, **no guarantees** can be made about continuous functionality
+- **Use at your own risk** - this is open-source development in progress
+- Always test in your own environment before production use
+
+### **🔐 n8n Keycloak SSO Integration**
+- **Enterprise SSO** requires an **n8n Enterprise license**
+- Users with **Free/Community licenses** should use **development platform only**
+- Keycloak integration will **not function** without proper n8n licensing
+- For evaluation purposes, use `make deploy-dev` instead of production deployments
+
+### **💡 Development Focus**
+- This platform is actively developed and **continuously evolving**
+- Features may change between versions
+- **Production hardening** is ongoing - use with appropriate caution
+- Community feedback and contributions are always welcome
+
+---
+
 ## 🤝 Contributing
 
 Built with love for the DevOps community. Contributions welcome!
