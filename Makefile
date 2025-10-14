@@ -1156,12 +1156,16 @@ list-port-forwards: ## 📋 MONITOR List all active port-forwards
 # =============================================================================
 
 .PHONY: start-n8n-port-forward
-start-n8n-port-forward: ## 📋 MONITOR Start n8n port-forward in background
-	@$(MAKE) start-port-forward SERVICE=workflow-nexus-service TARGET_NAMESPACE=$(DEV_NAMESPACE) PORT=5678 TARGET_PORT=5678
+start-n8n-port-forward: ## 📋 MONITOR Start n8n port-forward (NAMESPACE=target-ns PORT=5678)
+	$(eval DEPLOY_NS := $(if $(NAMESPACE),$(NAMESPACE),$(DEV_NAMESPACE)))
+	$(eval DEPLOY_PORT := $(if $(PORT),$(PORT),5678))
+	@$(MAKE) start-port-forward SERVICE=workflow-nexus-service TARGET_NAMESPACE=$(DEPLOY_NS) PORT=$(DEPLOY_PORT) TARGET_PORT=5678
 
-.PHONY: start-postgres-port-forward
-start-postgres-port-forward: ## 📋 MONITOR Start PostgreSQL port-forward in background
-	@$(MAKE) start-port-forward SERVICE=postgres-service TARGET_NAMESPACE=$(DEV_DATABASE_NAMESPACE) PORT=5432 TARGET_PORT=5432
+.PHONY: start-postgres-port-forward  
+start-postgres-port-forward: ## 📋 MONITOR Start PostgreSQL port-forward (NAMESPACE=target-ns PORT=5432)
+	$(eval DEPLOY_NS := $(if $(NAMESPACE),$(NAMESPACE),$(DEV_DATABASE_NAMESPACE)))
+	$(eval DEPLOY_PORT := $(if $(PORT),$(PORT),5432))
+	@$(MAKE) start-port-forward SERVICE=postgres-service TARGET_NAMESPACE=$(DEPLOY_NS) PORT=$(DEPLOY_PORT) TARGET_PORT=5432
 
 .PHONY: start-vault-port-forward
 start-vault-port-forward: ## 📋 MONITOR Start Vault port-forward in background
@@ -1172,8 +1176,10 @@ start-ollama-port-forward: ## 📋 MONITOR Start Ollama port-forward in backgrou
 	@$(MAKE) start-port-forward SERVICE=ollama-service TARGET_NAMESPACE=$(OLLAMA_NAMESPACE) PORT=11434 TARGET_PORT=11434
 
 .PHONY: start-beacon-port-forward
-start-beacon-port-forward: ## 📋 MONITOR Start Starbridge Beacon (webserver) port-forward in background
-	@$(MAKE) start-port-forward SERVICE=starbridge-webserver-service TARGET_NAMESPACE=starbridge-platform PORT=8080 TARGET_PORT=80
+start-beacon-port-forward: ## 📋 MONITOR Start Starbridge Beacon port-forward (NAMESPACE=target-ns PORT=8080)
+	$(eval DEPLOY_NS := $(if $(NAMESPACE),$(NAMESPACE),starbridge-platform))
+	$(eval DEPLOY_PORT := $(if $(PORT),$(PORT),8080))
+	@$(MAKE) start-port-forward SERVICE=starbridge-webserver-service TARGET_NAMESPACE=$(DEPLOY_NS) PORT=$(DEPLOY_PORT) TARGET_PORT=80
 
 # =============================================================================
 # ⚙️ CONFIGURATION TARGETS
@@ -1893,21 +1899,7 @@ web-preview: ## 🌐 WEB Preview web page in VS Code Simple Browser
 # 🚀 PRODUCTION WEBSERVER DEPLOYMENT TARGETS
 # =============================================================================
 
-.PHONY: deploy-webserver
-deploy-webserver: ## � BEACON Deploy Starbridge Beacon webserver to development
-	@echo "📡 Deploying Starbridge Beacon (Webserver) to development..."
-	@kubectl create namespace $(DEV_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@kubectl apply -f starbridge_beacon_deployment/webserver-pvc.yaml -n $(DEV_NAMESPACE)
-	@kubectl apply -f starbridge_beacon_deployment/webserver-configmap.yaml -n $(DEV_NAMESPACE)
-	@kubectl apply -f starbridge_beacon_deployment/webserver-deployment.yaml -n $(DEV_NAMESPACE)
-	@kubectl apply -f starbridge_beacon_deployment/webserver-service.yaml -n $(DEV_NAMESPACE)
-	@echo "✅ Starbridge Beacon deployed to $(DEV_NAMESPACE)!"
-	@echo "💡 Run 'make start-beacon-port-forward' to access at http://localhost:8080"
-	@echo "💡 Run 'make sync-web-content' to upload web files"
-
-.PHONY: sync-web-content
-sync-web-content: ## 📁 WEBSERVER Sync web content to production webserver PVC
-	@echo "🌟 Syncing web content to production webserver..."
+.PHONY: deploy-beacon
 	@./webserver_deployment/sync-web-content.sh
 	@echo "✅ Web content synchronized!"
 
@@ -1963,7 +1955,69 @@ webserver-shell: ## 🐚 WEBSERVER Access webserver container shell for debuggin
 	@kubectl exec -it -n starbridge-platform deployment/starbridge-webserver -- /bin/sh
 
 # =============================================================================
-# 🛡️ GUARDIAN NEXUS (SECURITY) - KEYCLOAK AUTHENTICATION SYSTEM
+# � FLEXIBLE NAMESPACE DEPLOYMENTS - UNIVERSAL SERVICE DEPLOYMENT
+# =============================================================================
+
+.PHONY: deploy-workflow-nexus
+deploy-workflow-nexus: ## 🤖 WORKFLOW Deploy n8n with flexible namespace (NAMESPACE=target-ns)
+	$(eval DEPLOY_NS := $(if $(NAMESPACE),$(NAMESPACE),$(DEV_NAMESPACE)))
+	@echo "🤖 Deploying Workflow Nexus (n8n) to namespace: $(DEPLOY_NS)"
+	@echo "🔧 Creating namespace if needed..."
+	@kubectl create namespace $(DEPLOY_NS) --dry-run=client -o yaml | kubectl apply -f -
+	@echo "🚀 Applying n8n resources..."
+	@kubectl apply -f workflow_nexus_deployment/workflow-nexus-dev-config.yaml --namespace=$(DEPLOY_NS)
+	@kubectl apply -f workflow_nexus_deployment/workflow-nexus-dev-secret.yaml --namespace=$(DEPLOY_NS)
+	@kubectl apply -f workflow_nexus_deployment/workflow-nexus-dev-pvc.yaml --namespace=$(DEPLOY_NS)
+	@kubectl apply -f workflow_nexus_deployment/workflow-nexus-dev-deployment.yaml --namespace=$(DEPLOY_NS)
+	@kubectl wait --for=condition=ready pod -l app=workflow-nexus --timeout=300s -n $(DEPLOY_NS) || true
+	@echo "✅ Workflow Nexus deployed to namespace: $(DEPLOY_NS)!"
+	@echo "💡 Access: make start-n8n-port-forward NAMESPACE=$(DEPLOY_NS)"
+
+.PHONY: deploy-stellar-core
+deploy-stellar-core: ## 🐘 DATABASE Deploy PostgreSQL with flexible namespace (NAMESPACE=target-ns)
+	$(eval DEPLOY_NS := $(if $(NAMESPACE),$(NAMESPACE),$(DEV_DATABASE_NAMESPACE)))
+	@echo "🐘 Deploying Stellar Core Database (PostgreSQL) to namespace: $(DEPLOY_NS)"
+	@echo "🔧 Creating namespace if needed..."
+	@kubectl create namespace $(DEPLOY_NS) --dry-run=client -o yaml | kubectl apply -f -
+	@echo "🚀 Applying PostgreSQL resources..."
+	@sed 's/namespace: $(DEV_DATABASE_NAMESPACE)/namespace: $(DEPLOY_NS)/g' stellar_core_database_deployment/postgres-secret.yaml | kubectl apply -f -
+	@sed 's/namespace: $(DEV_DATABASE_NAMESPACE)/namespace: $(DEPLOY_NS)/g' stellar_core_database_deployment/postgres-configmap.yaml | kubectl apply -f -
+	@sed 's/namespace: $(DEV_DATABASE_NAMESPACE)/namespace: $(DEPLOY_NS)/g' stellar_core_database_deployment/postgres-pvc.yaml | kubectl apply -f -
+	@sed 's/namespace: $(DEV_DATABASE_NAMESPACE)/namespace: $(DEPLOY_NS)/g' stellar_core_database_deployment/postgres-deployment.yaml | kubectl apply -f -
+	@sed 's/namespace: $(DEV_DATABASE_NAMESPACE)/namespace: $(DEPLOY_NS)/g' stellar_core_database_deployment/postgres-service.yaml | kubectl apply -f -
+	@kubectl wait --for=condition=ready pod -l app=postgres --timeout=300s -n $(DEPLOY_NS) || true
+	@echo "✅ Stellar Core Database deployed to namespace: $(DEPLOY_NS)!"
+	@echo "💡 Access: make start-postgres-port-forward NAMESPACE=$(DEPLOY_NS)"
+
+.PHONY: deploy-all-unified
+deploy-all-unified: ## 🌟 DEPLOY All services to single namespace (NAMESPACE=target-ns)
+	$(eval DEPLOY_NS := $(if $(NAMESPACE),$(NAMESPACE),unified-starbridge))
+	@echo "🌟 UNIFIED DEPLOYMENT: Deploying ALL services to namespace: $(DEPLOY_NS)"
+	@echo "═══════════════════════════════════════════════════════════════════════════════"
+	@echo "🚀 Phase 1: Deploying Stellar Core Database..."
+	@$(MAKE) deploy-stellar-core NAMESPACE=$(DEPLOY_NS)
+	@echo ""
+	@echo "🚀 Phase 2: Deploying Workflow Nexus (n8n)..."
+	@$(MAKE) deploy-workflow-nexus NAMESPACE=$(DEPLOY_NS)  
+	@echo ""
+	@echo "🚀 Phase 3: Deploying Starbridge Beacon..."
+	@$(MAKE) deploy-beacon NAMESPACE=$(DEPLOY_NS)
+	@echo ""
+	@echo "✅ UNIFIED DEPLOYMENT COMPLETE!"
+	@echo "═══════════════════════════════════════════════════════════════════════════════"
+	@echo "🎯 All services deployed to namespace: $(DEPLOY_NS)"
+	@echo ""
+	@echo "🔗 Quick Access Commands:"
+	@echo "  make start-postgres-port-forward NAMESPACE=$(DEPLOY_NS) # PostgreSQL → localhost:5432"
+	@echo "  make start-n8n-port-forward NAMESPACE=$(DEPLOY_NS)      # n8n → http://localhost:5678"
+	@echo "  make start-beacon-port-forward NAMESPACE=$(DEPLOY_NS)   # Webserver → http://localhost:8080"
+	@echo ""
+	@echo "📋 Management:"
+	@echo "  kubectl get all -n $(DEPLOY_NS)                         # Show all resources"
+	@echo "  make list-port-forwards                                 # Show active port-forwards"
+
+# =============================================================================
+# �🛡️ GUARDIAN NEXUS (SECURITY) - KEYCLOAK AUTHENTICATION SYSTEM
 # =============================================================================
 
 .PHONY: deploy-guardian-nexus
