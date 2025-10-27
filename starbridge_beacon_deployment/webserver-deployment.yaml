@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: starbridge-webserver
-  namespace: starbridge-platform
   labels:
     app: starbridge-webserver
     component: frontend

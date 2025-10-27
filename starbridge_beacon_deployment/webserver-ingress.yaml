@@ -2,7 +2,6 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: starbridge-webserver-ingress
-  namespace: starbridge-platform
   labels:
     app: starbridge-webserver
     component: ingress

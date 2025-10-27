@@ -240,28 +240,28 @@ deploy-vault-nexus: ## 🔐 DEPLOY Vault Nexus secret management
 	@echo "  3. Deploy services with VAULT=enabled"
 
 .PHONY: vault-init
-vault-init: ## 🔑 Initialize Vault (first-time setup)
+vault-init: ## 🔑 VAULT Initialize Vault (first-time setup)
 	@echo "$(SHIELD) Initializing Vault Nexus..."
 	@chmod +x vault_nexus_deployment/vault-init.sh
 	@vault_nexus_deployment/vault-init.sh
 
 .PHONY: vault-setup
-vault-setup: vault-setup-policies vault-setup-secrets ## 🛡️ Complete Vault setup (policies + secrets)
+vault-setup: vault-setup-policies vault-setup-secrets ## 🛡️ VAULT Complete Vault setup (policies + secrets)
 
 .PHONY: vault-setup-policies
-vault-setup-policies: ## 📋 Setup Vault policies
+vault-setup-policies: ## 📋 VAULT Setup Vault policies
 	@echo "$(SHIELD) Setting up Vault policies..."
 	@chmod +x vault_nexus_deployment/vault-setup-policies.sh
 	@vault_nexus_deployment/vault-setup-policies.sh
 
 .PHONY: vault-setup-secrets
-vault-setup-secrets: ## 🔑 Setup initial secrets in Vault
+vault-setup-secrets: ## 🔑 VAULT Setup initial secrets in Vault
 	@echo "$(SHIELD) Setting up Vault secrets..."
 	@chmod +x vault_nexus_deployment/vault-setup-secrets.sh
 	@vault_nexus_deployment/vault-setup-secrets.sh
 
 .PHONY: vault-status
-vault-status: ## 📊 Check Vault status
+vault-status: ## 📊 VAULT Check Vault status
 	@echo "$(SHIELD) Vault Nexus Status:"
 	@kubectl get pods -n security-nexus -l app=vault-nexus
 	@echo ""
@@ -271,7 +271,7 @@ vault-status: ## 📊 Check Vault status
 	@pkill -f "kubectl port-forward.*vault-nexus" || true
 
 .PHONY: vault-unseal
-vault-unseal: ## 🔓 Unseal Vault (provide unseal key when prompted)
+vault-unseal: ## 🔓 VAULT Unseal Vault (provide unseal key when prompted)
 	@echo "$(SHIELD) Unsealing Vault..."
 	@kubectl port-forward -n security-nexus service/vault-nexus 8200:8200 &
 	@sleep 2
@@ -279,7 +279,7 @@ vault-unseal: ## 🔓 Unseal Vault (provide unseal key when prompted)
 	@pkill -f "kubectl port-forward.*vault-nexus" || true
 
 .PHONY: vault-ui
-vault-ui: ## 🖥️ Access Vault UI (opens port-forward)
+vault-ui: ## 🖥️ VAULT Access Vault UI (opens port-forward)
 	@echo "$(SHIELD) Starting Vault UI access..."
 	@echo "$(INFO) Vault UI will be available at: http://localhost:8200"
 	@echo "$(INFO) Press Ctrl+C to stop port forwarding"
@@ -290,7 +290,7 @@ vault-ui: ## 🖥️ Access Vault UI (opens port-forward)
 # =============================================================================
 
 .PHONY: deploy-dev
-deploy-dev: ## $(ROCKET) DEPLOY Developer Mode - Fast minimal setup
+deploy-dev: ## $(ROCKET) DEV Developer Mode - Fast minimal setup
 	@echo "$(ROCKET) Deploying Starbridge Platform - DEVELOPER MODE"
 	@echo "═══════════════════════════════════════════════════════════════"
 	@echo "$(INFO) Fast iteration setup with minimal complexity"
@@ -308,7 +308,7 @@ deploy-dev: ## $(ROCKET) DEPLOY Developer Mode - Fast minimal setup
 	@echo "$(CHECK) Developer Mode deployment complete!"
 
 .PHONY: fresh-dev-deployment
-fresh-dev-deployment: ## $(ROCKET) DEPLOY Complete fresh development deployment workflow
+fresh-dev-deployment: ## $(ROCKET) DEV Complete fresh development deployment workflow
 	@echo "$(ROCKET) Starting Fresh Development Deployment Workflow"
 	@echo "═══════════════════════════════════════════════════════════════"
 	@echo "$(INFO) This will:"
@@ -335,7 +335,7 @@ fresh-dev-deployment: ## $(ROCKET) DEPLOY Complete fresh development deployment 
 	fi
 
 .PHONY: fresh-dev-auto
-fresh-dev-auto: ## $(ROCKET) DEPLOY Complete fresh development deployment (no prompts)
+fresh-dev-auto: ## $(ROCKET) DEV Complete fresh development deployment (no prompts)
 	@echo "$(ROCKET) Starting Automated Fresh Development Deployment"
 	@echo "═══════════════════════════════════════════════════════════════"
 	@echo "$(INFO) Automated sequence:"
@@ -357,7 +357,7 @@ fresh-dev-auto: ## $(ROCKET) DEPLOY Complete fresh development deployment (no pr
 	@echo "  make start-postgres-port-forward   # PostgreSQL at localhost:5432"
 
 .PHONY: deploy-prod
-deploy-prod: ## $(SHIELD) DEPLOY Production Mode - Enterprise security with Guardian Nexus
+deploy-prod: ## $(SHIELD) PROD Production Mode - Enterprise security with Guardian Nexus
 	@echo "$(ROCKET) Deploying Starbridge Platform - PRODUCTION MODE"
 	@echo "═══════════════════════════════════════════════════════════════"
 	@echo "$(SHIELD) Enterprise security with Guardian Nexus OIDC"
@@ -391,24 +391,54 @@ platform-status: ## $(LOGS) MONITOR Show status of both platform modes
 	@echo "$(SHIELD) GUARDIAN NEXUS STATUS:"
 	@kubectl get pods -n $(SECURITY_NAMESPACE) 2>/dev/null | head -10 || echo "  $(WARNING) Guardian Nexus not deployed"
 	@echo ""
+	@echo "$(BRIDGE) FILE BRIDGES STATUS:"
+	@kubectl get pods -n file-bridges 2>/dev/null | head -10 || echo "  $(WARNING) File Bridges not deployed"
+	@echo ""
+
+.PHONY: platform-resources
+platform-resources: ## $(LOGS) MONITOR Show resource usage (CPU/Memory) for all pods
+	@echo "$(ROCKET) Starbridge Platform - Resource Usage Report"
+	@echo "═══════════════════════════════════════════════════════════════"
+	@echo ""
+	@echo "$(DATABASE) CLUSTER NODES:"
+	@kubectl top nodes 2>/dev/null || echo "  $(WARNING) Metrics server not available"
+	@echo ""
+	@echo "$(BEACON) DEVELOPER MODE RESOURCES:"
+	@kubectl top pods -n $(DEV_NAMESPACE) --sort-by=memory 2>/dev/null || echo "  $(WARNING) Developer mode not deployed or metrics unavailable"
+	@echo ""
+	@echo "$(DATABASE) STELLAR CORE DATABASE (DEV):"
+	@kubectl top pods -n $(DEV_DATABASE_NAMESPACE) --sort-by=memory 2>/dev/null || echo "  $(WARNING) Database not deployed or metrics unavailable"
+	@echo ""
+	@echo "$(BRAIN) NEURAL NEXUS (AI):"
+	@kubectl top pods -n neural-nexus-dev --sort-by=memory 2>/dev/null || echo "  $(WARNING) Neural Nexus not deployed or metrics unavailable"
+	@echo ""
+	@echo "$(BRIDGE) FILE BRIDGES:"
+	@kubectl top pods -n file-bridges --sort-by=memory 2>/dev/null || echo "  $(WARNING) File Bridges not deployed or metrics unavailable"
+	@echo ""
+	@echo "$(SHIELD) PRODUCTION MODE RESOURCES:"
+	@kubectl top pods -n $(PROD_NAMESPACE) --sort-by=memory 2>/dev/null || echo "  $(WARNING) Production mode not deployed or metrics unavailable"
+	@echo ""
+	@echo "$(SHIELD) GUARDIAN NEXUS (SECURITY):"
+	@kubectl top pods -n $(SECURITY_NAMESPACE) --sort-by=memory 2>/dev/null || echo "  $(WARNING) Guardian Nexus not deployed or metrics unavailable"
+	@echo ""
 
 .PHONY: deploy-dev-clean
-deploy-dev-clean: ## $(CLEAN) CLEAN Remove developer mode deployment
+deploy-dev-clean: ## $(CLEAN) DEV Remove developer mode deployment
 	@echo "$(CLEAN) Cleaning Developer Mode deployment..."
-	@kubectl delete namespace $(DEV_NAMESPACE) $(DEV_DATABASE_NAMESPACE) --ignore-not-found=true
+	@kubectl delete namespace $(DEV_NAMESPACE) $(DEV_DATABASE_NAMESPACE) file-bridges --ignore-not-found=true
 	@echo "$(CHECK) Developer Mode cleaned"
 
 .PHONY: deploy-prod-clean
-deploy-prod-clean: ## $(CLEAN) CLEAN Remove production mode deployment
+deploy-prod-clean: ## $(CLEAN) PROD Remove production mode deployment
 	@echo "$(CLEAN) Cleaning Production Mode deployment..."
-	@kubectl delete namespace $(PROD_NAMESPACE) $(PROD_DATABASE_NAMESPACE) $(SECURITY_NAMESPACE) --ignore-not-found=true
+	@kubectl delete namespace $(PROD_NAMESPACE) $(PROD_DATABASE_NAMESPACE) $(SECURITY_NAMESPACE) file-bridges --ignore-not-found=true
 	@echo "$(CHECK) Production Mode cleaned"
 
 .PHONY: nuclear-clean
 nuclear-clean: ## $(CLEAN) CLEAN Complete platform reset - remove everything
 	@echo "$(WARNING) Initiating NUCLEAR CLEAN protocol..."
 	@echo "$(CLEAN) Removing all platform namespaces..."
-	@kubectl get namespaces | grep -E "(starbridge|stellar-core|guardian)" | awk '{print $$1}' | xargs -I {} kubectl delete namespace {} --timeout=60s --ignore-not-found=true || true
+	@kubectl get namespaces | grep -E "(starbridge|stellar-core|guardian|file-bridges)" | awk '{print $$1}' | xargs -I {} kubectl delete namespace {} --timeout=60s --ignore-not-found=true || true
 	@echo "$(CHECK) Nuclear clean complete - all platforms reset"
 
 # =============================================================================
@@ -445,7 +475,7 @@ _deploy-workflow-nexus-dev:
 	@kubectl wait --for=condition=complete job/workflow-nexus-db-setup-dev --timeout=120s -n $(DEV_NAMESPACE)
 	@echo "$(CHECK) Data Vault setup completed successfully"
 	@kubectl apply -f workflow_nexus_deployment/workflow-nexus-dev-deployment.yaml -n $(DEV_NAMESPACE)
-	@kubectl wait --for=condition=ready pod -l app=workflow-nexus --timeout=300s -n $(DEV_NAMESPACE)
+	@kubectl wait --for=condition=ready pod -l app=workflow-nexus,component=main --timeout=300s -n $(DEV_NAMESPACE)
 
 .PHONY: _deploy-neural-nexus-dev
 _deploy-neural-nexus-dev:
@@ -467,12 +497,18 @@ _deploy-neural-nexus-storage:
 .PHONY: _deploy-neural-nexus-default-model
 _deploy-neural-nexus-default-model:
 	@echo "$(BRAIN) Deploying default AI model from catalog..."
-	@$(MAKE) deploy-neural-nexus-model MODEL=llama31-7b NAMESPACE=neural-nexus-dev MODE=dev
+	@$(MAKE) deploy-neural-nexus-model MODEL=gemma-2b NAMESPACE=neural-nexus-dev MODE=dev
 
 .PHONY: _deploy-file-bridge-dev
 _deploy-file-bridge-dev:
-	@echo "$(BRIDGE) Deploying File Bridge for developer mode..."
-	@kubectl apply -f file_bridge_deployment/ -n $(DEV_NAMESPACE)
+	@echo "$(BRIDGE) Deploying File Bridge infrastructure for developer mode..."
+	@echo "$(BRIDGE) Creating dedicated file-bridges namespace..."
+	@kubectl create namespace file-bridges --dry-run=client -o yaml | kubectl apply -f -
+	@echo "$(BRIDGE) Deploying base configuration..."
+	@kubectl apply -f file_bridge_deployment/file-bridge-configmap.yaml
+	@echo "$(INFO) File Bridge infrastructure ready!"
+	@echo "$(INFO) Create bridges with: make new-file-bridge BRIDGE_NAME=<name> BRIDGE_HOST=<host> BRIDGE_PATH=<path>"
+	@echo "$(INFO) Or local bridge: make new-local-file-bridge BRIDGE_NAME=<name> BRIDGE_PATH=<path>"
 
 .PHONY: _deploy-starbridge-beacon-dev
 _deploy-starbridge-beacon-dev:
@@ -520,7 +556,7 @@ _deploy-workflow-nexus-secure:
 	@kubectl apply -f workflow_nexus_deployment/workflow-nexus-prod-secret.yaml -n $(PROD_NAMESPACE)
 	@kubectl apply -f workflow_nexus_deployment/workflow-nexus-dev-pvc.yaml -n $(PROD_NAMESPACE)
 	@kubectl apply -f workflow_nexus_deployment/workflow-nexus-dev-deployment.yaml -n $(PROD_NAMESPACE)
-	@kubectl wait --for=condition=ready pod -l app=workflow-nexus --timeout=300s -n $(PROD_NAMESPACE)
+	@kubectl wait --for=condition=ready pod -l app=workflow-nexus,component=main --timeout=300s -n $(PROD_NAMESPACE)
 
 .PHONY: _deploy-neural-nexus-prod
 _deploy-neural-nexus-prod:
@@ -529,8 +565,13 @@ _deploy-neural-nexus-prod:
 
 .PHONY: _deploy-file-bridge-prod
 _deploy-file-bridge-prod:
-	@echo "$(BRIDGE) Deploying File Bridge for production mode..."
-	@kubectl apply -f file_bridge_deployment/ -n $(PROD_NAMESPACE)
+	@echo "$(BRIDGE) Deploying File Bridge infrastructure for production mode..."
+	@echo "$(BRIDGE) Creating dedicated file-bridges namespace..."
+	@kubectl create namespace file-bridges --dry-run=client -o yaml | kubectl apply -f -
+	@echo "$(BRIDGE) Deploying base configuration..."
+	@kubectl apply -f file_bridge_deployment/file-bridge-configmap.yaml
+	@echo "$(INFO) File Bridge infrastructure ready!"
+	@echo "$(INFO) Create bridges with: make new-file-bridge BRIDGE_NAME=<name> BRIDGE_HOST=<host> BRIDGE_PATH=<path>"
 
 .PHONY: _deploy-starbridge-beacon-prod
 _deploy-starbridge-beacon-prod:
@@ -728,7 +769,7 @@ _wait-cross-ready:
 # =============================================================================
 
 .PHONY: new-ollama-pod
-new-ollama-pod: ## 🧠 AI Deploy new Ollama AI model pod (MODEL=llama3.1 SIZE=7b GPU=false REPLICAS=1)
+new-ollama-pod: ## 🧠 NEURAL AI Deploy new Ollama AI model pod (MODEL=llama3.1 SIZE=7b GPU=false REPLICAS=1)
 	@echo "✅$(ROCKET) Deploying Ollama Model: ⚙️$(MODEL_FULL)"
 	@echo "  ─Model:      ⚙️$(MODEL_FULL)"
 	@echo "  ─Type:       ⚙️$(MODEL_TYPE) $(if $(filter vision,$(MODEL_TYPE)),$(VISION),$(BRAIN))"
@@ -746,7 +787,7 @@ new-ollama-pod: ## 🧠 AI Deploy new Ollama AI model pod (MODEL=llama3.1 SIZE=7
 	@echo "🔷💡 Access URL: http://ollama-$(MODEL_NAME_SAFE).$(OLLAMA_NAMESPACE).svc.cluster.local:11434"
 
 .PHONY: list-ollama-pods
-list-ollama-pods: ## 🧠 AI List all deployed Ollama model pods with details
+list-ollama-pods: ## 🧠 NEURAL AI List all deployed Ollama model pods with details
 	@echo "$(BRAIN) Ollama Model Status Overview"
 	@echo "─════════════════════════════════════════════════════════════════════════════════"
 	@echo ""
@@ -757,7 +798,7 @@ list-ollama-pods: ## 🧠 AI List all deployed Ollama model pods with details
 	@kubectl get pvc -l app=ollama -n $(OLLAMA_NAMESPACE) 2>/dev/null || echo "  ❌No storage allocated"
 
 .PHONY: scale-ollama
-scale-ollama: ## 🧠 AI Scale existing Ollama model deployment (MODEL=llama3.1 SIZE=7b REPLICAS=3)
+scale-ollama: ## 🧠 NEURAL AI Scale existing Ollama model deployment (MODEL=llama3.1 SIZE=7b REPLICAS=3)
 	@echo "ℹ️$(ROCKET) Scaling Ollama Model: ⚙️$(MODEL_FULL)"
 	@echo "  ─Target Replicas: ⚙️$(REPLICAS)"
 	@kubectl scale deployment ollama-$(MODEL_NAME_SAFE) --replicas=$(REPLICAS) -n $(OLLAMA_NAMESPACE)
@@ -765,7 +806,7 @@ scale-ollama: ## 🧠 AI Scale existing Ollama model deployment (MODEL=llama3.1 
 	@echo "✅$(CHECK) Model scaled to $(REPLICAS) replicas"
 
 .PHONY: logs-ollama
-logs-ollama: ## 🧠 AI View Ollama model logs (MODEL=llama3.1 SIZE=7b FOLLOW=false)
+logs-ollama: ## 🧠 NEURAL AI View Ollama model logs (MODEL=llama3.1 SIZE=7b FOLLOW=false)
 	@echo "ℹ️$(LOGS) Ollama $(MODEL_FULL) logs:"
 	@if [ "$(FOLLOW)" = "true" ]; then \
 		kubectl logs -f -l app=ollama,model=$(MODEL_NAME_SAFE) --tail=$(TAIL_LINES) -n $(OLLAMA_NAMESPACE); \
@@ -774,7 +815,7 @@ logs-ollama: ## 🧠 AI View Ollama model logs (MODEL=llama3.1 SIZE=7b FOLLOW=fa
 	fi
 
 .PHONY: test-ollama
-test-ollama: ## 🧠 AI Test Ollama model with a simple prompt (MODEL=llama3.1 SIZE=7b)
+test-ollama: ## 🧠 NEURAL AI Test Ollama model with a simple prompt (MODEL=llama3.1 SIZE=7b)
 	@echo "ℹ️💡 Testing Ollama Model: ⚙️$(MODEL_FULL)"
 	@kubectl run ollama-test-$(MODEL_NAME_SAFE) --rm -i --tty --image=curlimages/curl --restart=Never -n $(OLLAMA_NAMESPACE) -- \
 		sh -c 'curl -X POST http://ollama-$(MODEL_NAME_SAFE).$(OLLAMA_NAMESPACE).svc.cluster.local:11434/api/generate \
@@ -799,7 +840,7 @@ cleanup-all-ollama: ## 🧹 AI CLEANUP Remove ALL Ollama models and storage
 	@echo "✅$(CHECK) All Ollama models destroyed!"
 
 .PHONY: show-model-catalog
-show-model-catalog: ## 🧠 AI Display available model catalog with specifications
+show-model-catalog: ## 🧠 NEURAL AI Display available model catalog with specifications
 	@echo "$(BRAIN) Available Ollama Models"
 	@echo "─════════════════════════════════════════════════════════════════════════════════"
 	@echo ""
@@ -1866,18 +1907,18 @@ WEB_PORT ?= 8000
 WEB_ROOT ?= web
 
 .PHONY: web-server
-web-server: ## 🌐 WEB Start local web server for Starbridge Platform showcase
+web-server: ## 🌐 BEACON Start local web server for Starbridge Platform showcase
 	@echo "🌟 Starting Starbridge Platform Web Interface..."
 	@cd $(WEB_ROOT) && ./serve.sh --port $(WEB_PORT)
 
 .PHONY: web-server-from-root
-web-server-from-root: ## 🌐 WEB Start web server from project root (serves all files)
+web-server-from-root: ## 🌐 BEACON Start web server from project root (serves all files)
 	@echo "🌟 Starting Starbridge Platform Web Server from project root..."
 	@echo "🔗 Access at: http://localhost:$(WEB_PORT)/web/"
 	@cd web && ./serve.sh --port $(WEB_PORT) --root ..
 
 .PHONY: web-open
-web-open: ## 🌐 WEB Open Starbridge Platform web interface in browser
+web-open: ## 🌐 BEACON Open Starbridge Platform web interface in browser
 	@echo "🌟 Opening Starbridge Platform Web Interface..."
 	@echo "🔗 Starting server on port $(WEB_PORT)..."
 	@if command -v xdg-open > /dev/null; then \
@@ -1890,7 +1931,7 @@ web-open: ## 🌐 WEB Open Starbridge Platform web interface in browser
 	@$(MAKE) web-server WEB_PORT=$(WEB_PORT)
 
 .PHONY: web-preview
-web-preview: ## 🌐 WEB Preview web page in VS Code Simple Browser
+web-preview: ## 🌐 BEACON Preview web page in VS Code Simple Browser
 	@echo "🌟 Opening Starbridge Platform in VS Code Simple Browser..."
 	@echo "🔗 Starting server on port 8001..."
 	@cd web && ./serve.sh --port 8001 &
@@ -1904,14 +1945,14 @@ web-preview: ## 🌐 WEB Preview web page in VS Code Simple Browser
 	@echo "✅ Web content synchronized!"
 
 .PHONY: port-forward-webserver
-port-forward-webserver: ## 🌐 WEBSERVER Port-forward to production webserver
+port-forward-webserver: ## 🌐 BEACON Port-forward to production webserver
 	@echo "🌟 Starting port-forward to production webserver..."
 	@echo "🔗 Access at: http://localhost:8080"
 	@echo "🛑 Press Ctrl+C to stop"
 	@kubectl port-forward -n starbridge-platform service/starbridge-webserver-service 8080:80
 
 .PHONY: status-webserver
-status-webserver: ## 📊 WEBSERVER Show production webserver status
+status-webserver: ## 📊 BEACON Show production webserver status
 	@echo "🌟 Starbridge Platform Production Webserver Status"
 	@echo ""
 	@echo "📦 Pods:"
@@ -1927,19 +1968,19 @@ status-webserver: ## 📊 WEBSERVER Show production webserver status
 	@kubectl get ingress starbridge-webserver-ingress -n starbridge-platform --no-headers 2>/dev/null || echo "❌ No webserver ingress found"
 
 .PHONY: logs-webserver
-logs-webserver: ## 📋 WEBSERVER Show production webserver logs
+logs-webserver: ## 📋 BEACON Show production webserver logs
 	@echo "🌟 Starbridge Platform Production Webserver Logs"
 	@kubectl logs -n starbridge-platform -l app=starbridge-webserver --tail=50
 
 .PHONY: restart-webserver
-restart-webserver: ## 🔄 WEBSERVER Restart production webserver pods
+restart-webserver: ## 🔄 BEACON Restart production webserver pods
 	@echo "🌟 Restarting production webserver..."
 	@kubectl rollout restart deployment/starbridge-webserver -n starbridge-platform
 	@kubectl rollout status deployment/starbridge-webserver -n starbridge-platform
 	@echo "✅ Webserver restarted!"
 
 .PHONY: undeploy-webserver
-undeploy-webserver: ## 🗑️ WEBSERVER Remove production webserver deployment
+undeploy-webserver: ## 🗑️ BEACON Remove production webserver deployment
 	@echo "🌟 Removing production webserver deployment..."
 	@kubectl delete -f webserver_deployment/webserver-ingress.yaml --ignore-not-found=true
 	@kubectl delete -f webserver_deployment/webserver-service.yaml --ignore-not-found=true
@@ -1950,7 +1991,7 @@ undeploy-webserver: ## 🗑️ WEBSERVER Remove production webserver deployment
 	@echo "✅ Production webserver undeployed!"
 
 .PHONY: webserver-shell
-webserver-shell: ## 🐚 WEBSERVER Access webserver container shell for debugging
+webserver-shell: ## 🐚 BEACON Access webserver container shell for debugging
 	@echo "🌟 Accessing webserver container shell..."
 	@kubectl exec -it -n starbridge-platform deployment/starbridge-webserver -- /bin/sh
 
@@ -1969,7 +2010,7 @@ deploy-workflow-nexus: ## 🤖 WORKFLOW Deploy n8n with flexible namespace (NAME
 	@kubectl apply -f workflow_nexus_deployment/workflow-nexus-dev-secret.yaml --namespace=$(DEPLOY_NS)
 	@kubectl apply -f workflow_nexus_deployment/workflow-nexus-dev-pvc.yaml --namespace=$(DEPLOY_NS)
 	@kubectl apply -f workflow_nexus_deployment/workflow-nexus-dev-deployment.yaml --namespace=$(DEPLOY_NS)
-	@kubectl wait --for=condition=ready pod -l app=workflow-nexus --timeout=300s -n $(DEPLOY_NS) || true
+	@kubectl wait --for=condition=ready pod -l app=workflow-nexus,component=main --timeout=300s -n $(DEPLOY_NS) || true
 	@echo "✅ Workflow Nexus deployed to namespace: $(DEPLOY_NS)!"
 	@echo "💡 Access: make start-n8n-port-forward NAMESPACE=$(DEPLOY_NS)"
 
@@ -2021,7 +2062,7 @@ deploy-all-unified: ## 🌟 DEPLOY All services to single namespace (NAMESPACE=t
 # =============================================================================
 
 .PHONY: deploy-guardian-nexus
-deploy-guardian-nexus: ## 🛡️ SECURITY Deploy Guardian Nexus (Keycloak) authentication system
+deploy-guardian-nexus: ## 🛡️ GUARDIAN Deploy Guardian Nexus (Keycloak) authentication system
 	@echo "🛡️ Deploying Guardian Nexus - Central Security Command..."
 	@kubectl apply -f security_nexus_deployment/security-nexus-namespace.yaml
 	@kubectl apply -f security_nexus_deployment/guardian-nexus-secrets.yaml
@@ -2038,7 +2079,7 @@ deploy-guardian-nexus: ## 🛡️ SECURITY Deploy Guardian Nexus (Keycloak) auth
 	@echo "💡 Admin credentials: admin / starbridge-admin-2025"
 
 .PHONY: port-forward-guardian-nexus
-port-forward-guardian-nexus: ## 🛡️ SECURITY Port-forward to Guardian Nexus admin console
+port-forward-guardian-nexus: ## 🛡️ GUARDIAN Port-forward to Guardian Nexus admin console
 	@echo "🛡️ Starting port-forward to Guardian Nexus..."
 	@echo "🔗 Access at: http://localhost:8080/admin"
 	@echo "🔑 Admin: admin / starbridge-admin-2025"
@@ -2046,7 +2087,7 @@ port-forward-guardian-nexus: ## 🛡️ SECURITY Port-forward to Guardian Nexus 
 	@kubectl port-forward -n security-nexus service/guardian-nexus-service 8080:8080
 
 .PHONY: status-guardian-nexus
-status-guardian-nexus: ## 🛡️ SECURITY Show Guardian Nexus status
+status-guardian-nexus: ## 🛡️ GUARDIAN Show Guardian Nexus status
 	@echo "🛡️ Guardian Nexus - Central Security Command Status"
 	@echo ""
 	@echo "📦 Keycloak Pods:"
@@ -2062,7 +2103,7 @@ status-guardian-nexus: ## 🛡️ SECURITY Show Guardian Nexus status
 	@kubectl get pvc -n security-nexus --no-headers 2>/dev/null || echo "❌ No PVCs found"
 
 .PHONY: logs-guardian-nexus
-logs-guardian-nexus: ## 🛡️ SECURITY Show Guardian Nexus logs
+logs-guardian-nexus: ## 🛡️ GUARDIAN Show Guardian Nexus logs
 	@echo "🛡️ Guardian Nexus Logs"
 	@echo "📋 Keycloak Logs:"
 	@kubectl logs -n security-nexus -l component=keycloak --tail=50
@@ -2071,7 +2112,7 @@ logs-guardian-nexus: ## 🛡️ SECURITY Show Guardian Nexus logs
 	@kubectl logs -n security-nexus -l component=database --tail=20
 
 .PHONY: restart-guardian-nexus
-restart-guardian-nexus: ## 🛡️ SECURITY Restart Guardian Nexus components
+restart-guardian-nexus: ## 🛡️ GUARDIAN Restart Guardian Nexus components
 	@echo "🛡️ Restarting Guardian Nexus..."
 	@kubectl rollout restart deployment/guardian-nexus-keycloak -n security-nexus
 	@kubectl rollout restart deployment/guardian-nexus-postgres -n security-nexus
@@ -2080,7 +2121,7 @@ restart-guardian-nexus: ## 🛡️ SECURITY Restart Guardian Nexus components
 	@echo "✅ Guardian Nexus restarted!"
 
 .PHONY: undeploy-guardian-nexus
-undeploy-guardian-nexus: ## 🛡️ SECURITY Remove Guardian Nexus deployment
+undeploy-guardian-nexus: ## 🛡️ GUARDIAN Remove Guardian Nexus deployment
 	@echo "🛡️ Removing Guardian Nexus deployment..."
 	@kubectl delete -f security_nexus_deployment/guardian-nexus-ingress.yaml --ignore-not-found=true
 	@kubectl delete -f security_nexus_deployment/guardian-nexus-keycloak.yaml --ignore-not-found=true
@@ -2094,12 +2135,12 @@ undeploy-guardian-nexus: ## 🛡️ SECURITY Remove Guardian Nexus deployment
 	@echo "✅ Guardian Nexus undeployed!"
 
 .PHONY: configure-workflow-nexus-oidc
-configure-workflow-nexus-oidc: ## 🛡️ SECURITY Configure Workflow Nexus OIDC client in Keycloak
+configure-workflow-nexus-oidc: ## 🛡️ GUARDIAN Configure Workflow Nexus OIDC client in Keycloak
 	@echo "🛡️ Configuring Workflow Nexus OIDC authentication..."
 	@./security_nexus_deployment/configure-workflow-nexus-client.sh
 
 .PHONY: deploy-workflow-nexus-secure
-deploy-workflow-nexus-secure: ## 🛡️ SECURITY Deploy secure Workflow Nexus with OIDC integration
+deploy-workflow-nexus-secure: ## 🛡️ GUARDIAN Deploy secure Workflow Nexus with OIDC integration
 	@echo "🛡️ Deploying secure Workflow Nexus..."
 	@kubectl apply -f n8n_deployment/workflow-nexus-security-config.yaml
 	@kubectl apply -f n8n_deployment/workflow-nexus-oidc-secrets.yaml
@@ -2137,7 +2178,7 @@ phase2-security-deployment: ## 🛡️ SECURITY Execute complete Phase 2 securit
 # ═══════════════════════════════════════════════════════════════
 
 .PHONY: deploy-neural-nexus-model
-deploy-neural-nexus-model: ## 🧠 Deploy Neural Nexus AI model from catalog (usage: make deploy-neural-nexus-model MODEL=llama31-7b NAMESPACE=neural-nexus-dev MODE=dev)
+deploy-neural-nexus-model: ## 🧠 NEURAL Deploy Neural Nexus AI model from catalog (usage: make deploy-neural-nexus-model MODEL=llama31-7b NAMESPACE=neural-nexus-dev MODE=dev)
 	@if [ -z "$(MODEL)" ]; then \
 		echo "❌ MODEL parameter required"; \
 		echo "💡 Available models:"; \
@@ -2188,7 +2229,7 @@ _deploy-neural-model:
 	@echo "💡 Monitor progress: kubectl logs -n $(NAMESPACE) -l model=$(MODEL) -f"
 
 .PHONY: list-neural-nexus-models
-list-neural-nexus-models: ## 🧠 List available Neural Nexus AI models from catalog
+list-neural-nexus-models: ## 🧠 NEURAL List available Neural Nexus AI models from catalog
 	@echo "🧠 Neural Nexus AI Model Catalog"
 	@echo "════════════════════════════════"
 	@echo "📋 Text Models:"

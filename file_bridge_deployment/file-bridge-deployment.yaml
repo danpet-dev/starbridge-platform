@@ -146,7 +146,8 @@ spec:
       
       containers:
       # Main SFTP server container
-      - name: sftp-server
+      # SFTP client for external bridge
+      - name: sftp-client
         image: alpine:3.20.3
         ports:
         - containerPort: SFTP_PORT
